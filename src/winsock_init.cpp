@@ -21,18 +21,18 @@ int C_Winsock_Init::create_sock( int sock_fd, struct sockaddr_in *serv_addr )
 
     ZeroMemory(serv_addr, sizeof(serv_addr));
 
-    (*serv_addr).sin_family = AF_INET;
-    (*serv_addr).sin_addr.s_addr =INADDR_ANY;
-    (*serv_addr).sin_port = htons(SERV_PORT);
+    serv_addr->sin_family = AF_INET;
+    serv_addr->sin_addr.s_addr =INADDR_ANY;
+    serv_addr->sin_port = htons(SERV_PORT);
 
     return sock_fd;
 }
 
-int C_Winsock_Init::set_nonblock(int socket_fd, u_long iMode){
-    int iResult = ioctlsocket(socket_fd, FIONBIO, &iMode);
-    if (iResult != NO_ERROR)
-        std::cout << "ioctlsocket failed with error: " << iResult << '\n';
-    return iResult;
+int C_Winsock_Init::set_nonblock(int socket_fd, u_long flags){
+    int blocking_state = ioctlsocket(socket_fd, FIONBIO, &flags);
+    if (blocking_state != NO_ERROR)
+        std::cout << "ioctlsocket failed with error: " << blocking_state << '\n';
+    return blocking_state;
 }
 
 

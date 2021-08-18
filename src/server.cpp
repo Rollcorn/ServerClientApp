@@ -74,7 +74,7 @@ void C_Server::dg_echo(int socket_fd, char *buff, int buff_len, struct sockaddr_
 {
     int recv_len;
 
-    while(1)
+    while(true)
         {
             std::cout << "Waiting for data...\n";
             fflush(stdout);
@@ -102,20 +102,6 @@ void C_Server::dg_echo(int socket_fd, char *buff, int buff_len, struct sockaddr_
                 exit(EXIT_FAILURE);
             }
         }
-
-    /*
-    int recv_len;
-    socklen_t len;
-    char mesg_buffer[SER_BUFFER_SIZE];
-    for (;;){
-        len = client_len;
-
-        recv_len = recvfrom(socket_fd, mesg_buffer, SER_BUFFER_SIZE, 0,
-                                                            (struct sockaddr *)&pcliaddr, &len);
-
-        sendto(socket_fd, mesg_buffer, recv_len, 0, (struct sockaddr *)&pcliaddr, len);
-    }
-    */
 }
 
 // namespace

@@ -56,7 +56,6 @@
   Forward Declarations
 *****************************************************************************/
 
-//const int DEFAULT_PORT = 27015;
 static const int SERV_PORT = 8888;
 static const char* SERVER_ADDRESS = "127.0.0.1";
 

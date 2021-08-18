@@ -95,8 +95,11 @@ int C_Client::make_sock(int socket_fd, struct sockaddr_in *si_other)
 void C_Client::dg_client( int sockfd, char *message, char * buff, struct sockaddr *si_other,
                                                                                                     socklen_t slen )
 {
-    while(1)
+    while(true)
         {
+            ZeroMemory(message, sizeof (strlen(message)));
+            ZeroMemory(buff, sizeof (m_client_buf_size));
+
             std::cout << "Enter message: " << '\n';
             gets(message);
 
@@ -152,5 +155,5 @@ namespace {
 *****************************************************************************/
 
 
-} // namespace foo TODO
+} // namespace client TODO
 
