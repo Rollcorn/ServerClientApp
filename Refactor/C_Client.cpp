@@ -1,12 +1,14 @@
 /*****************************************************************************
 
-  MODULE_OR_CLASS <TODO: заменить на имя модуля/класса>
+  MODULE_OR_CLASS C_CLient
 
-  Модуль/Класс <TODO: краткое описание назначения в одном предложении> ... (должно быть идентично в .h и .cpp)
+  Модуль/Класс предоставляет функционал сетевого клиента
 
 
-  РЕАЛИЗАЦИЯ <TODO: описание особенностей реализации и используемых алгоритмов, если они не тривиальны и отсутствует документация>
-
+  РЕАЛИЗАЦИЯ <TODO: описание особенностей реализации и используемых алгоритмов,
+если они не тривиальны и отсутствует документация>
+Созданный объект клиента начинает работу методом workingSession. Метод workingSession создает
+сокет для для взаимодействия с сервером.
   * ...
   * ...
   * ...
@@ -25,7 +27,7 @@
 *****************************************************************************/
 #include "C_Client.h"
 
-namespace client { // TODO
+namespace client {
 
 /*****************************************************************************
   Macro Definitions
@@ -54,24 +56,19 @@ namespace client { // TODO
 *******************************************************************************/
 void C_Client::workingSession()
 {
-    struct sockaddr_in siOther;
+    int protocol     = IPPROTO_UDP;
+    auto addr        = inet_addr(m_socket.ipAddress().c_str()); //Адрес сокета сервера
+    int messPerS     = 1;   //частота отправки запросов на сервевер (сообщений в секунду)
+    int workDuration = 30;  //длительность работы клиента
 
-    WSADATA wsadata;
+    //запуск сокета
+    setupConnect(addr, protocol);
 
+    //запуск сетевого взяимодействия со стороны клиента
+    communication(messPerS, workDuration);
 
-    int init_state = initializingWinsock(wsadata);
-    int socketLen  = sizeof(siOther);
-    int socketFd   = createSock(&siOther);
-    int blockState = setNonblock(socketFd);
-
-    communication( socketFd, s_cliBufferSize, (struct sockaddr *)&siOther,
-                   socketLen, timer );
-
-    timerThread.join();
-
-    closesocket(socketFd);
-    WSACleanup();
-    std::cout << " \n Connection closed \n";
+    //закрытие сокета
+    m_socket.disconnect();
 }
 
 /*****************************************************************************
@@ -85,24 +82,17 @@ void C_Client::workingSession()
 * @return
 * sockFd - файловый дескриптор созданного сокета.
 */
-int C_Client::createSock(struct sockaddr_in *a_siOther)
+void C_Client::setupConnect(unsigned long addr, int protocol)
 {
-    int socketFd;
+    //
+    m_socket.initWinsock();
 
-    if ( (socketFd = socket(AF_INET, SOCK_DGRAM, IPPROTO_UDP)) == SOCKET_ERROR)
-    {
-        std::cout <<( "Client: socket() failed with error code : %d" , WSAGetLastError( ) );
-        exit(EXIT_FAILURE);
-    }
+    struct sockaddr_in *seraddr = m_socket.clientAddr();
 
-    //setup address structure
-    ZeroMemory(a_siOther, sizeof (a_siOther));
+    m_socket.createSock(seraddr, addr, protocol);
 
-    a_siOther->sin_family      = AF_INET;
-    a_siOther->sin_port        = htons(s_servPort);
-    a_siOther->sin_addr.s_addr = inet_addr(s_servAddr);
+    m_socket.setNonblock();
 
-    return socketFd;
 }
 
 /*****************************************************************************
@@ -122,43 +112,40 @@ int C_Client::createSock(struct sockaddr_in *a_siOther)
 * @return
 *
 */
-void C_Client::communication( int a_sockfd, int a_buffSize, struct sockaddr *a_siOther, socklen_t a_slen)
+void C_Client::communication(int messPerSec, int workDuration)
 {
-    int timer = 0;
-    /*
-     * Таймер для прекращения работы функции communication() при переклюяении
-     * в значение 1, функция завершается и сокет закрывается.
-     */
-    std::thread timerThread( [&timer]{ Sleep(30000); timer = 1; } );
+    char buffer[m_BufSize];
 
-    char buffer[a_buffSize];
+    char *message  = " Give me a number!";
+    auto start     = std::chrono::steady_clock::now();
+    auto end       = std::chrono::steady_clock::now();
+    sockaddr_in *seraddr = m_socket.clientAddr();
+    std::chrono::duration<double> curentWorkTime = end - start;
 
-    while(timer != 1)
+    while(curentWorkTime.count() < workDuration)
     {
-            ZeroMemory(buffer, a_buffSize);
+            ZeroMemory(&buffer, sizeof(buffer));
 
-            const char *message = "Client: Give me a number!";
 
-            std::cout << "Client: Sent message to " << inet_ntoa( ((struct sockaddr_in *)a_siOther)->sin_addr) <<
-                         " : " << ntohs ( ( (struct sockaddr_in *)a_siOther )->sin_port) << '\n';
+            m_socket.sendData(seraddr, message, strlen(message));
 
-            if ( sendto ( a_sockfd, message, strlen(message) , 0 , a_siOther, a_slen ) == SOCKET_ERROR )
-            {
-                std::cout <<"Client: sendto() failed with error code: " << WSAGetLastError() << '\n';
-                exit( EXIT_FAILURE );
-            }
+            m_socket.reciveData(seraddr, buffer, sizeof(int));
 
-            if ( ( recvfrom ( a_sockfd, buffer, sizeof(int), 0, a_siOther, &a_slen ) ) == SOCKET_ERROR)
-            {
-                std::cout <<"Client: recvfrom() failed with error code : " << WSAGetLastError() << '\n';
-                exit(EXIT_FAILURE);
-            }
+            std::cout << m_socket.name() << " Get number: " << static_cast<int >(*buffer) << '\n';
 
-            std::cout << "Client: Get number: " << static_cast<int >(*buffer) << '\n';
-            Sleep(1000);
+            end = std::chrono::steady_clock::now();
+            curentWorkTime = end - start;
+
+            Sleep(messPerSec*1000);
     }
 
 }
+/*****************************************************************************
+* Конструктор
+*/
+C_Client::C_Client(std::string a_ipAddr, int a_port, std::string name):
+    m_socket(a_ipAddr, a_port, name)
+{}
 
 /*****************************************************************************
   Functions Prototypes
@@ -168,9 +155,12 @@ void C_Client::communication( int a_sockfd, int a_buffSize, struct sockaddr *a_s
   Variables Definitions
 *****************************************************************************/
 
+static const int s_servPort = 8080;
+static const char* s_servIpAddr = "127.0.0.1";
+
 /*****************************************************************************
   Functions Definitions
 *****************************************************************************/
 
-} // namespace client TODO
+} // namespace client
 

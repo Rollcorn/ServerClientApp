@@ -56,12 +56,14 @@
 
 int main()
 {
+    std::string addr = "127.0.0.1";
+    int port = 8080;
 
-    server::C_Server myServer;
-    client::C_Client myClient1;
+    server::C_Server myServer(addr,port, "Server");
+    client::C_Client myClient(addr,port, "Client");
 
     std::thread server_thread( [&]{ myServer.workingSession(); } );
-    std::thread client1_thread( [&]{ myClient1.workingSession(); } );
+    std::thread client1_thread( [&]{ myClient.workingSession(); } );
 
     server_thread.join();
     client1_thread.join();

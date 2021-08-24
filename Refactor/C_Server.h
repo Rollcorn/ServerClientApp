@@ -41,6 +41,7 @@
 
 #include <random>
 #include <ctime>
+#include <typeinfo>
 
 #include "C_Socket.h"
 
@@ -57,24 +58,23 @@ namespace server { // TODO
 class C_Server
 {
 public:
-    //Создает и инициализирует сокет и выполняет коммуникацию с сокетом  клиентом
+
+    //Запуск работы сервера
     void workingSession();
 
-    C_Server()   = default;
+    C_Server(std::string a_ipAddr, int a_port, std::string a_sockName);
     ~C_Server() = default;
 
 private:
-    mySocket::C_Socket m_socket; //объект
-    static const int m_servBufferSize = 1024;    //Размер буфера сервера
+    mySocket::C_Socket  m_socket;   //объект обеспечивающий связь клиента с сервером
+    const int           m_servBufferSize = 1024;  //Размер буфера сервера
 
+    //Запуск сокета сервера
+    void setupConnect(int addr, int protocol);
 
+    //Обмен данными с клиентом
+    void communication (int buffSize);
 
-    //Создает сокет инициализируя параметры сетевого соединения в переданной структуры
-    int createSock ( struct sockaddr_in *servaddr );
-
-    //Принимает запросы от сервера и отправляет в ответ случайное число от -100 до 100
-    void communication ( int socketFd, int buffSize, struct sockaddr_in *siOther,
-                        socklen_t siLen );
 
 
 };
