@@ -2,22 +2,75 @@
 
   CLASS C_Socket
 
-  Класс для создания и работы с сокетами средствами библиотеки WinSock2
+  Класс для создания и работы с сокетами средствами библиотеки WinSock2.
 
-  ОПИСАНИЕ Предоставляет интерфейсы для работы с сокетами по протоколу UDP
 
-  ИСПОЛЬЗОВАНИЕ Необходимимы для начала работы являеются следующие параметры:
-  * IP-адрес сервера;
-  * Номер порта для открытия сервера;
-  * Имя сокета, используемое в выводимых логах.
-    Порядок использования
-  * Перед использованием методов класса для работы с сокетом необходимо выполнить initWinsock
-    для инициализации необходимых библиотек в системе.
+  ОПИСАНИЕ
+
+  * Предоставляет интерфейс для работы с сокетами по протоколу UDP.
+
+
+  ИСПОЛЬЗОВАНИЕ
+
+  * Необходимыми для начала работы являеются следующие параметры:
+
+        - IP-адрес сервера;
+        - Номер порта для открытия сервера;
+        - Имя сокета, используемое в выводимых логах.
+
+  Порядок использования:
+
+  * Перед использованием методов, для работы с сокетом, необходимо выполнить initWinsock
+    для инициализации необходимых библиотек в системе. Метод initWinsock вызывается в конструкторе класса;
+
   * создать сокет createSock;
+
   * setNonblock и makeBind методы выполняются в произвольном порядке;
+
   * sendData и reciveData используются руководствуясь логикой создаваемой коммуникации;
+
   * servAddr и clientAddr - геттеры соответствующих структур адресов сервера и клиента, соответственно.
   ipAddress - геттер IP-адреса сервера.
+
+
+    // 1. Создание сокета
+    C_Socket socket;
+
+    // 2. Настройка сокета
+    socket.setupSock(...);
+
+    // 3. Открытие сокета
+    socket.openSock();
+
+    // 4. Установка соединения (опционально для UDP)
+    socket.connect();
+
+    // 5. Использование сокета - обмен (в необходимом порядке)
+
+    // 5.1. Отправка данных
+    socket.sendData( ... );
+    // 5.2. Получение данных
+    socket.reciveData( ... );
+
+    // 6. Закрытие соединения
+    socket.disconnect();
+
+    // -> п. 4,
+
+    // 7. Закрытие сокета
+    socket.close()
+
+    // -> п. 2 или п. 3
+
+    // 8. Удаление сокета
+    Х
+
+    * ...
+
+    * ...
+
+    * ...
+
 
   ПРИМИЧАНИЕ
   * При создании экземпляра конструктор создает 2 структуры sockaddr_in для адреса сервера и клиента,
@@ -29,8 +82,7 @@
   Macro Definitions
 *****************************************************************************/
 
-#ifndef WINSOCK_INIT_H
-#define WINSOCK_INIT_H
+#pragma once
 
 #ifndef WIN32_LEAN_AND_MEAN
 #define WIN32_LEAN_AND_MEAN
@@ -59,63 +111,71 @@ struct trans_prot{
 class C_Socket
 {
 
+    enum Flags{
+        optNo       = 0x0,
+        optNonblock = 0x1,
+    };
+
 public:
     // Инициализация библиотеки WinSock2
-    void initWinsock();
+    bool initWinsock();
 
-    // Создание/запуск сокета
-    void createSock(struct sockaddr_in *a_myAddr, unsigned long addr, int protocol);
+    // Запуск сокета
+    bool setupSock( int a_protocol = IPPROTO_UDP, int a_type = SOCK_DGRAM,
+                    int a_ipFamily = AF_INET );
+
+    // Настройки сокета
+    bool socketSettings( std::string a_ipAddr, int a_port, int a_optFlag = 1 );
 
     // Установка сокета в неблокирующий режим
-    void setNonblock();
+    bool setNonblock();
 
     // Cвязывание сокет с локальным адресом протокола
-    void makeBind(struct sockaddr_in *a_myAddr);
-
-    // Установление соединения(для ТСР) TODO
-    void makeConnect();
-
-    // Установка в слушающий режим(для ТСР) TODO
-    void makeListen(int a_backlog);
+    bool openSock();
 
     // Получение данныйх
-    void reciveData(struct sockaddr_in *a_srcAddr, char *a_dataStore, int a_dataStoreSize);
+    bool reciveData( struct sockaddr_in *a_srcAddr, char *a_data,
+                     int a_dataLen, int *a_recvSize );
 
     // Отправка данных
-    void sendData(struct sockaddr_in *a_distAddr, char *a_dataStore, int a_dataStorSize);
+    bool sendData(struct sockaddr_in *a_distAddr, char *a_data,
+                   int a_dataLen, int *a_sendSize );
 
     // Закрытие сокета
-    void disconnect();
+    bool disconnect();
 
-    // Получить имя сокета
+    // Задание имени сокета
+    bool setName( std::string a_name );
+
+    // Получение имени сокета
     std::string name();
 
-    // Получить структуру соединия источника
+    // Получение структуры адреса источника
     struct sockaddr_in* servAddr();
 
-    // Получить структуру соединия назначения
+    // Получение структуры адреса клиента
     struct sockaddr_in* clientAddr();
 
-    // Получить ip адресс сервера
+    // Получение ip адреса сервера
     std::string ipAddress();
 
-    C_Socket( std::string a_ipAddr, int a_port, std::string a_sockName);
+    C_Socket( );
 
     ~C_Socket();
 
 private:
     // Параметры протокола
-    int m_ipFamily  = AF_INET;      // IP протокол соединения
-    int m_type      = SOCK_DGRAM;   // тип соединения сокета
-    int m_protocol  = 0;            // протокол соединения сокета
+    int m_ipFamily; // IP протокол соединения
+    int m_type;     // тип соединения сокета
+    int m_protocol; // протокол соединения сокета
 
     // Параметры соединения
-    std::string         m_sockName;     // Имя сокета отображаемое в логе
-    int                 m_servPort;     // Порт сервера
-    std::string         m_servIpAddr;   // IP адресс сервера
+    std::string m_servIpAddr;   // IP адресс сервера
+    short       m_servPort;     // Порт сервера
+    std::string m_sockName;     // Имя сокета отображаемое в логе
 
-    struct sockaddr_in *m_myAddr;               // Параметры соединения сервера
-    struct sockaddr_in *m_otherAddr;            // Параметры соединения клиента
+    struct sockaddr_in *m_myAddr;    // Параметры соединения сервера
+    struct sockaddr_in *m_otherAddr; // Параметры соединения клиента
 
 
     //Данные сокета
@@ -138,6 +198,5 @@ private:
   Inline Functions Definitions
 *****************************************************************************/
 }//mySocket
-#endif // WINSOCK_INIT_H
 
 

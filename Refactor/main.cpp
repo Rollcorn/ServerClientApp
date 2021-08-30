@@ -5,7 +5,7 @@
   Модуль/Класс <TODO: краткое описание назначения в одном предложении> ... (должно быть идентично в .h и .cpp)
 
 
-  РЕАЛИЗАЦИЯ <TODO: описание особенностей реализации и используемых алгоритмов, если они не тривиальны и отсутствует документация>
+  РЕАЛИЗАЦИЯ <TODO: описание особенностей реализации и используемых   алгоритмов, если они не тривиальны и отсутствует документация>
 
   * ...
   * ...
@@ -57,16 +57,24 @@
 int main()
 {
     std::string addr = "127.0.0.1";
-    int port = 8080;
+    int         port = 8080;
+    int bufferSize = 512;
 
-    server::C_Server myServer(addr,port, "Server");
-    client::C_Client myClient(addr,port, "Client");
+    server::C_Server myServer;
+    myServer.setSockName("Server");
+    client::C_Client myClient;
+    myClient.setSockName("Client");
 
-    std::thread server_thread( [&]{ myServer.workingSession(); } );
-    std::thread client1_thread( [&]{ myClient.workingSession(); } );
+    std::thread server_thread( [&]{ if ( myServer.setupConnect( addr, port ) ) myServer.workingSession(bufferSize);
+                                    else std::cout << "Server Setup ERROR!\n";
+                                  } );
+
+    std::thread client_thread( [&]{ if ( myClient.setupConnect( addr, port ) ) myClient.workingSession();
+                                    else std::cout << "Client Setup ERROR!\n";
+                                  } );
 
     server_thread.join();
-    client1_thread.join();
+    client_thread.join();
 
     return 0;
 }
