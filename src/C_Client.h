@@ -69,7 +69,7 @@
 
 #include "C_Socket.h"
 
-namespace client {
+namespace myTask {
 
 /*****************************************************************************
   Macro Definitions
@@ -104,7 +104,7 @@ public:
 
 private:
     // объект обеспечивающий связь клиента с сервером
-    mySocket::C_Socket m_socket;
+    C_Socket m_socket;
     // размер буфера сообщений клиента
     const int          m_BufSize = 512;
 

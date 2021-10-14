@@ -79,6 +79,8 @@
 
 #endif
 
+#include "i_socket.h"
+
 #include <winsock2.h>
 #include <windows.h>
 #include <ws2tcpip.h>
@@ -92,7 +94,7 @@
 *****************************************************************************/
 
 
-namespace mySocket {
+namespace myTask {
 /*****************************************************************************
   Forward Declarations
 *****************************************************************************/
@@ -100,9 +102,6 @@ namespace mySocket {
 /*****************************************************************************
   Types and Classes Definitions
 *****************************************************************************/
-struct T_SockTransProt{
-    // TODO
-};
 
 class C_Socket
 {
@@ -113,32 +112,30 @@ class C_Socket
     };
 
 public:
-    // Инициализация библиотеки WinSock2
-    bool initWinsock();
 
     // Запуск сокета
-    bool setupSock( int a_protocol = IPPROTO_UDP, int a_type = SOCK_DGRAM,
+    bool setup( int a_protocol = IPPROTO_UDP, int a_type = SOCK_DGRAM,
                     int a_ipFamily = AF_INET );
 
     // Настройки сокета
-    bool socketSettings( std::string a_ipAddr, int a_port, int a_optFlag = optNonblock );
+    bool setSettings( std::string a_ipAddr, int a_port, int a_optFlag = optNonblock );
 
     // Установка сокета в неблокирующий режим
     bool setNonblock();
 
     // Cвязывание сокет с локальным адресом протокола
-    bool openSock();
+    bool open();
 
     // Получение данных
-    bool reciveData( struct sockaddr_in *a_srcAddr, char *a_data,
+    bool recv( struct sockaddr_in *a_srcAddr, char *a_data,
                      int a_dataLen, int *a_recvSize );
 
     // Отправка данных
-    bool sendData(struct sockaddr_in *a_distAddr, char *a_data,
+    bool send(struct sockaddr_in *a_distAddr, char *a_data,
                    int a_dataLen, int *a_sendSize );
 
     // Закрытие сокета
-    bool flushSock();
+    bool flush();
 
     // Задание имени сокета
     bool setName( std::string a_name );
@@ -160,6 +157,10 @@ public:
     ~C_Socket();
 
 private:
+
+    // Инициализация библиотеки WinSock2
+    bool initWinsock();
+
     // Параметры протокола
     int m_ipFamily; // IP протокол соединения
     int m_type;     // тип соединения сокета
@@ -170,8 +171,8 @@ private:
     short       m_servPort;     // Порт сервера
     std::string m_sockName;     // Имя сокета отображаемое в логе
 
-    struct sockaddr_in *m_myAddr;    // Параметры соединения сервера
-    struct sockaddr_in *m_otherAddr; // Параметры соединения клиента
+    struct sockaddr_in *m_ownAddr;    // Параметры соединения сервера
+    struct sockaddr_in *m_remoteAddr; // Параметры соединения клиента
 
 
     // Данные сокета

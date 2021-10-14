@@ -2,13 +2,13 @@
 
   C_CLient
 
-  Предоставляет функционал сетевого клиента.
+  Предоставляет реализаци. сетевого клиента.
 
 
 *****************************************************************************/
 #include "C_Client.h"
 
-namespace client {
+namespace myTask {
 
 /*****************************************************************************
   Macro Definitions
@@ -31,7 +31,7 @@ namespace client {
  * @param
  *   [in]    a_sockName     - имя сокета
  */
-bool client::C_Client::setSockName( std::string a_sockName )
+bool C_Client::setSockName( std::string a_sockName )
 {
     m_socket.setName( a_sockName );
 }
@@ -56,13 +56,13 @@ bool C_Client::setupConnect( std::string a_ipAddr, int a_port, int a_type,
     bool settingsRes =  false;
 
     // Инициализация сокета клиента
-    if ( setupRes = m_socket.setupSock( a_type, a_protocol, a_ipFamily ) ) {
+    if ( setupRes = m_socket.setup( a_type, a_protocol, a_ipFamily ) ) {
         std::cout << m_socket.name() << ": Socket created \n";
     }
     else { std::cout << m_socket.name() << ": Socket crating has Failed.\n"; }
 
     // Настройка соединения
-    if ( settingsRes = m_socket.socketSettings( a_ipAddr, a_port, a_optFlag ) ) {
+    if ( settingsRes = m_socket.setSettings( a_ipAddr, a_port, a_optFlag ) ) {
         std::cout << m_socket.name() << ": Socket applied settings.\n";
     }
     else { std::cout << m_socket.name() << ": Socket appling settings has Failed.\n"; }
@@ -100,7 +100,7 @@ bool C_Client::workingSession( int a_messPerSec, int a_workDuration )
         std::cout << m_socket.name() << ": communication successfuly finished.\n";
     }
     // закрытие сокета
-    if ( discRes = m_socket.flushSock() ) {
+    if ( discRes = m_socket.flush() ) {
         std::cout << m_socket.name() << ": Socket closed.\n";
     }
 
@@ -145,11 +145,11 @@ bool C_Client::communication(int a_messPerSec, int a_workDuration)
     {
             ZeroMemory(&buffer, sizeof(buffer));
 
-            sendRes = m_socket.sendData(seraddr, strMessage, strlen(strMessage), &recvSize );
+            sendRes = m_socket.send(seraddr, strMessage, strlen(strMessage), &recvSize );
             std::cout << m_socket.name() << ": Send message to " << inet_ntoa( m_socket.servAddr()->sin_addr )
                       << " : " << ntohs( m_socket.servAddr()->sin_port ) << '\n';
 
-            recvRes = m_socket.reciveData(seraddr, buffer, messageLen, &sendSize );
+            recvRes = m_socket.recv(seraddr, buffer, messageLen, &sendSize );
             std::cout << m_socket.name() << ": Recived message from " << inet_ntoa( m_socket.servAddr()->sin_addr )
                       << " : " << ntohs( m_socket.servAddr()->sin_port ) << '\n';
 

@@ -12,7 +12,7 @@
 
 #include "C_Socket.h"
 
-namespace mySocket{
+namespace myTask{
 /*****************************************************************************
   Forward Declarations
 *****************************************************************************/
@@ -58,7 +58,7 @@ bool C_Socket::initWinsock()
  *       a_ipFamily - семество протоколов сокетов.
  *
  */
-bool C_Socket::setupSock( int a_type, int a_protocol, int a_ipFamily )
+bool C_Socket::setup( int a_type, int a_protocol, int a_ipFamily )
 {
     m_ipFamily = a_ipFamily;
     m_type     = a_type;
@@ -87,18 +87,18 @@ bool C_Socket::setupSock( int a_type, int a_protocol, int a_ipFamily )
  *       a_optFlag  - флаговая переменная, при 1 метод вызовет функцию setNonblock.
  *
  */
-bool C_Socket::socketSettings( std::string a_ipAddr, int a_port, int a_optFlag )
+bool C_Socket::setSettings( std::string a_ipAddr, int a_port, int a_optFlag )
 {
     m_servIpAddr = a_ipAddr;
     m_servPort   = a_port;
 
-    ZeroMemory( m_myAddr, sizeof(*m_myAddr) );
+    ZeroMemory( m_ownAddr, sizeof(*m_ownAddr) );
 
-    m_myAddr->sin_family      = m_ipFamily;
-    m_myAddr->sin_port        = htons(m_servPort);
-    m_myAddr->sin_addr.s_addr = inet_addr(m_servIpAddr.c_str());
+    m_ownAddr->sin_family      = m_ipFamily;
+    m_ownAddr->sin_port        = htons(m_servPort);
+    m_ownAddr->sin_addr.s_addr = inet_addr(m_servIpAddr.c_str());
 
-    if(a_optFlag & optNonblock) setNonblock();
+    if( a_optFlag & optNonblock ) setNonblock();
 
     return true;
 
@@ -114,11 +114,11 @@ bool C_Socket::socketSettings( std::string a_ipAddr, int a_port, int a_optFlag )
  *  [in] a_myAddr - структура собственного адреса сокета.
  *
  */
-bool C_Socket::openSock()
+bool C_Socket::open()
 {
     bool openRes = false;
 
-    if( bind( m_sockFd, (struct sockaddr *)m_myAddr, sizeof(*m_myAddr) ) == SOCKET_ERROR) {
+    if( bind( m_sockFd, (struct sockaddr *)m_ownAddr, sizeof(*m_ownAddr) ) == SOCKET_ERROR) {
         std::cout << m_sockName << ": Bind failed with error code : " << WSAGetLastError()
                   <<'\n';
     }
@@ -162,7 +162,7 @@ bool C_Socket::setNonblock(){
  *       a_recvSize - переменная для хранения размера полученных данных.
  *
  */
-bool C_Socket::reciveData( struct sockaddr_in *a_srcAddr, char *a_data,
+bool C_Socket::recv( struct sockaddr_in *a_srcAddr, char *a_data,
                            int a_dataLen, int *a_recvSize )
 {
 
@@ -199,7 +199,7 @@ bool C_Socket::reciveData( struct sockaddr_in *a_srcAddr, char *a_data,
  *  иначе - ошибка.
  *
  */
-bool C_Socket::sendData( struct sockaddr_in *a_distAddr, char *a_data,
+bool C_Socket::send( struct sockaddr_in *a_distAddr, char *a_data,
                          int a_dataLen, int *a_sendSize )
 {
     bool sendRes = false;
@@ -221,7 +221,7 @@ bool C_Socket::sendData( struct sockaddr_in *a_distAddr, char *a_data,
  * Выполняет отключение созданного сокета closesocket(m_sockFd) и очистку WSACleanup.
  *
  */
-bool C_Socket::flushSock()
+bool C_Socket::flush()
 {
     closesocket( m_sockFd );
     WSACleanup();
@@ -266,7 +266,7 @@ std::string C_Socket::name()
  */
 struct sockaddr_in *C_Socket::servAddr()
 {
-    return m_myAddr;
+    return m_ownAddr;
 }
 
 /*****************************************************************************
@@ -278,7 +278,7 @@ struct sockaddr_in *C_Socket::servAddr()
  */
 struct sockaddr_in *C_Socket::clientAddr()
 {
-    return m_otherAddr;
+    return m_remoteAddr;
 }
 
 /* Получение ip-адреса сокета
@@ -296,7 +296,7 @@ std::string C_Socket::ipAddress()
  * Конструктор
  */
 C_Socket::C_Socket() :
-    m_myAddr( new struct sockaddr_in), m_otherAddr(new struct sockaddr_in )
+    m_ownAddr( new struct sockaddr_in), m_remoteAddr(new struct sockaddr_in )
 {
     initWinsock();
 }
@@ -306,8 +306,8 @@ C_Socket::C_Socket() :
  */
 C_Socket::~C_Socket()
 {
-    delete m_myAddr;
-    delete m_otherAddr;
+    delete m_ownAddr;
+    delete m_remoteAddr;
 }
 
 /*****************************************************************************

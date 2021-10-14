@@ -65,7 +65,7 @@ int main()
 
     server::C_Server myServer;
     myServer.setSockName("Server");
-    client::C_Client myClient;
+    myTask::C_Client myClient;
     myClient.setSockName("Client");
 
     std::thread server_thread( [&]{ if ( myServer.setupConnect( addr, port ) )

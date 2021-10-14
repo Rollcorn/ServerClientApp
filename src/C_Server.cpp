@@ -58,7 +58,7 @@ bool C_Server::setSockName( std::__cxx11::string a_sockName )
  */
 bool C_Server::flushConnect()
 {
-    return m_socket.flushSock();
+    return m_socket.flush();
 }
 
 /*****************************************************************************
@@ -91,7 +91,7 @@ bool C_Server::setupConnect( std::string a_ipAddr, int a_port, int a_type,
     bool openRes     = false;
 
     // Инициализация сокета клиента
-    if ( setupRes = m_socket.setupSock( a_type, a_protocol, a_ipFamily ) ){
+    if ( setupRes = m_socket.setup( a_type, a_protocol, a_ipFamily ) ){
         std::cout << m_socket.name() << ": Socket created \n";
     }
     else {
@@ -99,7 +99,7 @@ bool C_Server::setupConnect( std::string a_ipAddr, int a_port, int a_type,
     }
 
     // Настройка сокета
-    if ( settingsRes = m_socket.socketSettings( a_ipAddr, a_port, a_optFlag ) ) {
+    if ( settingsRes = m_socket.setSettings( a_ipAddr, a_port, a_optFlag ) ) {
          std::cout << m_socket.name() << ": Socket applied settings.\n";
     }
     else {
@@ -107,7 +107,7 @@ bool C_Server::setupConnect( std::string a_ipAddr, int a_port, int a_type,
     }
 
     // Cвязывание сокет с локальным адресом протокола
-    if ( openRes = m_socket.openSock() ) {
+    if ( openRes = m_socket.open() ) {
         std::cout << m_socket.name() << ": Bind done\n";
     }
     else {
@@ -203,12 +203,12 @@ bool C_Server::communication( int a_buffSize )
         int sendSize = 0;
 
         // Получение запроса от клиента
-        if ( m_socket.reciveData( m_socket.clientAddr(), buffer, sizeof(buffer), &recvSize ) )
+        if ( m_socket.recv( m_socket.clientAddr(), buffer, sizeof(buffer), &recvSize ) )
             std::cout << m_socket.name() << ": Recived message from " << inet_ntoa( m_socket.clientAddr()->sin_addr )
                       << " : " << ntohs( m_socket.clientAddr()->sin_port ) << '\n';
 
         // Отправка ответа клиенту
-        if ( m_socket.sendData( m_socket.clientAddr(), (char *)&num, sizeof(num), &sendSize ) )
+        if ( m_socket.send( m_socket.clientAddr(), (char *)&num, sizeof(num), &sendSize ) )
             std::cout << m_socket.name() << ": Sent message to " << inet_ntoa( m_socket.clientAddr()->sin_addr )
                       << " : " << ntohs( m_socket.clientAddr()->sin_port ) << '\n';
 
