@@ -201,15 +201,21 @@ bool C_Server::communication( int a_buffSize )
         int num = dist(gen);
         int recvSize = 0;
         int sendSize = 0;
+        bool recvRes = false;
+        bool sendRes = false;
 
         // Получение запроса от клиента
-        if ( m_socket.recv( m_socket.clientAddr(), buffer, sizeof(buffer), &recvSize ) )
-            std::cout << m_socket.name() << ": Recived message from " << inet_ntoa( m_socket.clientAddr()->sin_addr )
+        recvRes = m_socket.recv( m_socket.remoteAddr(), buffer, sizeof(buffer), &recvSize );
+        if ( recvRes )
+            std::cout << m_socket.name() << ": Recived message from "
+                      << inet_ntoa( m_socket.clientAddr()->sin_addr )
                       << " : " << ntohs( m_socket.clientAddr()->sin_port ) << '\n';
 
         // Отправка ответа клиенту
-        if ( m_socket.send( m_socket.clientAddr(), (char *)&num, sizeof(num), &sendSize ) )
-            std::cout << m_socket.name() << ": Sent message to " << inet_ntoa( m_socket.clientAddr()->sin_addr )
+        sendRes = m_socket.send( m_socket.remoteAddr(), (char *)&num, sizeof(num), &sendSize );
+        if ( sendRes )
+            std::cout << m_socket.name() << ": Sent message to "
+                      << inet_ntoa( m_socket.clientAddr()->sin_addr )
                       << " : " << ntohs( m_socket.clientAddr()->sin_port ) << '\n';
 
     }

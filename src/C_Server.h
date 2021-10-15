@@ -86,9 +86,10 @@
 #include <ctime>
 #include <typeinfo>
 
-#include "C_Socket.h"
+#include "C_UDPSocketCreator.h"
+#include "C_UDPSocket.h"
 
-namespace server {
+namespace myTask {
 
 /*****************************************************************************
   Forward Declarations
@@ -104,7 +105,7 @@ public:
 
     // Запуск сокета сервера
     bool setupConnect( std::string a_ipAddr, int a_port, int a_type = SOCK_DGRAM,
-                       int a_protocol = IPPROTO_UDP, int a_ipFamily = AF_INET ,
+                       int a_protocol = IPPROTO_UDP, int a_ipFamily = AF_INET,
                        int a_optFlag = 1 );
 
     // Установка имени сокета
@@ -121,7 +122,7 @@ public:
 
 private:
     // Объект обеспечивающий связь клиента с сервером
-    mySocket::C_Socket  m_socket;
+    I_Socket  m_socket;
     // Размер буфера сервера
     const int           m_servBufferSize = 1024;
 
@@ -141,5 +142,5 @@ private:
 /*****************************************************************************
   Inline Functions Definitions
 *****************************************************************************/
-} // namespace server
+} // namespace myTask
 

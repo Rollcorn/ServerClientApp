@@ -67,7 +67,7 @@
 
 #include <chrono>
 
-#include "C_Socket.h"
+#include "C_UDPSocket.h"
 
 namespace myTask {
 
@@ -104,7 +104,7 @@ public:
 
 private:
     // объект обеспечивающий связь клиента с сервером
-    C_Socket m_socket;
+    C_UPDSocket m_socket;
     // размер буфера сообщений клиента
     const int          m_BufSize = 512;
 

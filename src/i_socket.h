@@ -46,21 +46,22 @@ class I_Socket
 {
 
 public:
+    virtual ~I_Socket(){}
 
     // Запуск сокета
-    virtual bool setup();
+    virtual bool setup() = 0;
 
     // Cвязывание сокет с локальным адресом протокола
-    virtual bool open();
+    virtual bool open() = 0;
 
     // Получение данных
-    virtual bool recv();
+    virtual bool recv() = 0;
 
     // Отправка данных
-    virtual bool send();
+    virtual bool send() = 0;
 
     // Закрытие сокета
-    virtual bool flush();
+    virtual bool flush() = 0;
 
 
 };
