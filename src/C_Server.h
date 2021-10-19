@@ -86,7 +86,9 @@
 #include <ctime>
 #include <typeinfo>
 
-#include "C_UDPSocketCreator.h"
+#include "i_socket.h"
+#include "i_socketcreator.h"
+
 #include "C_UDPSocket.h"
 
 namespace myTask {
@@ -94,6 +96,7 @@ namespace myTask {
 /*****************************************************************************
   Forward Declarations
 *****************************************************************************/
+
 
 /*****************************************************************************
   Types and Classes Definitions
@@ -103,31 +106,33 @@ class C_Server
 {
 public:
 
-    // Запуск сокета сервера
-    bool setupConnect( std::string a_ipAddr, int a_port, int a_type = SOCK_DGRAM,
-                       int a_protocol = IPPROTO_UDP, int a_ipFamily = AF_INET,
-                       int a_optFlag = 1 );
-
-    // Установка имени сокета
-    bool setSockName( std::string a_sockName );
-
-    // Закрытие сокета клиента
-    bool flushConnect();
-
-    // Запуск работы сервера
-    bool workingSession( int a_buffSize );
-
     C_Server();
+
     ~C_Server() = default;
 
+    // Запуск сокета сервера
+    bool setup( std::pair<std::string, short> a_conParam, int a_optFlag = 1 );
+
+    // Запуск работы сервера
+    bool workingSession();
+
+    // Закрытие сокета клиента
+    bool flush();
+
 private:
-    // Объект обеспечивающий связь клиента с сервером
-    I_Socket  m_socket;
-    // Размер буфера сервера
-    const int           m_servBufferSize = 1024;
 
     // Обмен данными с клиентом
-    bool communication( int a_buffSize );
+    bool communication(const int a_bufSize);
+
+    // Объект инстанцирующий сокет необходимого протокола
+    I_SocketCreator* creator;
+
+    // Объект обеспечивающий связь клиента с сервером
+    I_Socket*  m_socket;
+    // Размер буфера сервера
+    const int m_servBufferSize = 1024;
+
+
 
 };
 

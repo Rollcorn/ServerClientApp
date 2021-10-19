@@ -1,31 +1,14 @@
 /*****************************************************************************
 
-  MODULE_OR_CLASS <TODO: заменить на имя модуля/класса>
+  main
 
-  Модуль/Класс <TODO: краткое описание назначения в одном предложении> ... (должно быть идентично в .h и .cpp)
+  Реализация сетевого взяаимодействи клент-сервер
 
-
-  РЕАЛИЗАЦИЯ <TODO: описание особенностей реализации и используемых   алгоритмов, если они не тривиальны и отсутствует документация>
-
-  * ...
-  * ...
-  * ...
-
-
-  ПРИМЕЧАНИЯ <TODO: особенности и замечания, не вошедшие в предыдущие разделы (при необходимости)>
-
-  * ...
-  * ...
-
-  <TODO: при использовании тематических подразделов в разделе РЕАЛИЗАЦИЯ
-         выполнять их нумерацию в соответствии с уровнями вложенности.
-         Тематические подразделы вводятся для описания отдельных алгоритмов,
-         форматов используемых данных и пр.>
 
 *****************************************************************************/
-
 #include <iostream>
 #include <thread>
+#include <utility>
 
 #include "C_Server.h"
 #include "C_Client.h"
@@ -56,24 +39,23 @@
 
 int main()
 {
+    // Инициализация параметров соединия
     std::string addr = "127.0.0.1";
-    int         port = 8080;
-    int bufferSize = 512;
+    short         port = 8080;
+    std::pair<std::string, short> connectData = {addr, port};
 
     int messPerS     = 1;   // частота отправки запросов на сервевер (сообщений в секунду)
     int workDuration = 30;  // длительность работы клиента
 
-    server::C_Server myServer;
-    myServer.setSockName("Server");
+    myTask::C_Server myServer;
     myTask::C_Client myClient;
-    myClient.setSockName("Client");
 
-    std::thread server_thread( [&]{ if ( myServer.setupConnect( addr, port ) )
-                                         myServer.workingSession(bufferSize);
+    std::thread server_thread( [&]{ if ( myServer.setup( connectData, 1) )
+                                         myServer.workingSession();
                                     else std::cout << "Server Setup ERROR!\n";
                                   } );
 
-    std::thread client_thread( [&]{ if ( myClient.setupConnect( addr, port ) )
+    std::thread client_thread( [&]{ if ( myClient.setup( connectData, 1 ) )
                                          myClient.workingSession(messPerS, workDuration);
                                     else std::cout << "Client Setup ERROR!\n";
                                   } );

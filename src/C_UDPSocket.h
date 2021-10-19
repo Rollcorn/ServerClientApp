@@ -1,55 +1,18 @@
 /*****************************************************************************
 
-  C_Socket
+  C_UDPSocket
 
-  Класс реализации сокета.
+  Класс реализации UDP сокета.
 
 
   ОПИСАНИЕ
 
-  * Предоставляет интерфейс для работы с сокетами по протоколу UDP.
+  * Реализация интерфейса сокета для работы по протоколу UDP.
 
 
   ИСПОЛЬЗОВАНИЕ
 
-  * Необходимыми для начала работы являеются следующие параметры:
-
-        - IP-адрес сервера;
-        - Номер порта для открытия сервера;
-        - Имя сокета, используемое в выводимых логах.
-
-  * Базовый порядок применения функций класса для запуска сокета:
-
-    1. Создание сокета
-
-        C_Socket socket;
-
-    2. Настройка сокета
-
-        socket.setupSock(...);
-
-    3. Открытие сокета
-        socket.openSock();
-
-    4. Установка соединения (опционально для UDP)
-        socket.connect();
-
-    5. Использование сокета - обмен (в необходимом порядке)
-
-        5.1. Отправка данных
-            socket.send( ... );
-        5.2. Получение данных
-            socket.recv( ... );
-
-    6. Закрытие соединения
-        socket.disconnect();
-
-    При необходимости соединения с новыми параметрами можно начать с п. 4, передав новые параметры.
-
-    7. Закрытие сокета
-        socket.close()
-
-       В случае новго открытия сокета повторить шаги начиная с п. 2.
+  * Cм. i_socket.h
 
 
   ПРИМИЧАНИЕ
@@ -79,7 +42,6 @@
 
 #endif
 
-#include "i_socket.h"
 
 #include <winsock2.h>
 #include <windows.h>
@@ -88,6 +50,11 @@
 #include <iostream>
 #include <thread>
 #include <chrono>
+#include <vector>
+#include <utility>
+
+#include "i_socket.h"
+
 
 /*****************************************************************************
   Macro Definitions
@@ -103,44 +70,34 @@ namespace myTask {
   Types and Classes Definitions
 *****************************************************************************/
 
-class C_Socket
-{
-    // Параметры состояния сокета в
-    enum Flags{
-        optNo       = 0x00,
-        optNonblock = 0x01,
-    };
+class C_UDPSocket : I_Socket {
 
 public:
 
+    C_UDPSocket();
+
+    virtual ~C_UDPSocket();
+
     // Запуск сокета
-    bool setup( int a_protocol = IPPROTO_UDP, int a_type = SOCK_DGRAM,
-                    int a_ipFamily = AF_INET );
-
-    // Настройки сокета
-    bool setSettings( std::string a_ipAddr, int a_port, int a_optFlag = optNonblock );
-
-    // Установка сокета в неблокирующий режим
-    bool setNonblock();
+    virtual bool setup( std::pair<std::string, short> a_conParam,
+                        int a_optFlag );
 
     // Cвязывание сокет с локальным адресом протокола
     bool open();
 
     // Получение данных
-    bool recv( struct sockaddr_in *a_srcAddr, char *a_data,
-                     int a_dataLen, int *a_recvSize );
+    virtual bool recv( char *a_data, int a_dataLen, int *a_recvSize );
 
     // Отправка данных
-    bool send(struct sockaddr_in *a_distAddr, char *a_data,
-                   int a_dataLen, int *a_sendSize );
+    virtual bool send( char *a_data, int a_dataLen, int *a_sendSize );
+
+    // Закрытие соединеия
+    bool close();
 
     // Закрытие сокета
     bool flush();
 
-    // Задание имени сокета
-    bool setName( std::string a_name );
-
-    // Получение имени сокета
+    // Имя сокета (ip - port)
     std::string name();
 
     // Получение структуры адреса источника
@@ -152,19 +109,19 @@ public:
     // Получение ip адреса сервера
     std::string ipAddress();
 
-    C_Socket( );
-
-    ~C_Socket();
 
 private:
 
     // Инициализация библиотеки WinSock2
     bool initWinsock();
 
+    // Установка сокета в неблокирующий режим
+    bool setNonblock();
+
     // Параметры протокола
-    int m_ipFamily; // IP протокол соединения
-    int m_type;     // тип соединения сокета
-    int m_protocol; // протокол соединения сокета
+    int m_ipFamily = T_SockTransProt.UDP.a_ipFamily; // IP протокол соединения
+    int m_type     = T_SockTransProt.UDP.a_type;     // тип соединения сокета
+    int m_protocol = T_SockTransProt.UDP.a_protocol; // протокол соединения сокета
 
     // Параметры соединения
     std::string m_servIpAddr;   // IP адресс сервера
@@ -173,7 +130,6 @@ private:
 
     struct sockaddr_in *m_ownAddr;    // Параметры соединения сервера
     struct sockaddr_in *m_remoteAddr; // Параметры соединения клиента
-
 
     // Данные сокета
     WSADATA m_wsadata;
@@ -184,15 +140,15 @@ protected:
     struct T_SockTransProt{
         struct {
             int a_protocol = IPPROTO_UDP;
-            int a_type = SOCK_DGRAM;
+            int a_type     = SOCK_DGRAM;
             int a_ipFamily = AF_INET;
         } UDP;
-    }T_SockTransProt;
+    } T_SockTransProt;
 
     // Параметры состояния сокета блокировки при передачи данных
     enum Flags{
-    optNo       = 0x00,
-    optNonblock = 0x01,
+        optNo       = 0x00,
+        optNonblock = 0x01,
     };
 
 };

@@ -2,11 +2,13 @@
 
   C_CLient
 
-  Предоставляет реализаци. сетевого клиента.
+  Предоставляет реализацию сетевого клиента.
 
 
 *****************************************************************************/
+
 #include "C_Client.h"
+
 
 namespace myTask {
 
@@ -22,20 +24,6 @@ namespace myTask {
   Types and Classes Definitions
 *****************************************************************************/
 
-/*****************************************************************************
- * Задание имени для сокета
- *
- * Назначает сокету определенное имя, для идентификации действий сокета при
- * выводе лога.
- *
- * @param
- *   [in]    a_sockName     - имя сокета
- */
-bool C_Client::setSockName( std::string a_sockName )
-{
-    m_socket.setName( a_sockName );
-}
-
 
 /*****************************************************************************
  * Запуск сокета сервера
@@ -48,26 +36,27 @@ bool C_Client::setSockName( std::string a_sockName )
  *           a_protocol - протокол ip-соединения.
  *
  */
-bool C_Client::setupConnect( std::string a_ipAddr, int a_port, int a_type,
-                             int a_protocol, int a_ipFamily, int a_optFlag )
-{
+bool C_Client::setup( std::pair<std::string, short> a_conParam,
+                            int a_optFlag ) {
 
-    bool setupRes = false;
-    bool settingsRes =  false;
+    bool setupRes = false; // Результат запуска сокета
+    bool openRes = false; // Результат открытия соединения сокета
 
-    // Инициализация сокета клиента
-    if ( setupRes = m_socket.setup( a_type, a_protocol, a_ipFamily ) ) {
-        std::cout << m_socket.name() << ": Socket created \n";
+    // Попытка инициализации сокета клиента
+    setupRes = m_socket->setup( a_conParam, a_optFlag );
+    if (setupRes) {
+        std::cout << m_socket->name() << ": Socket created \n";
     }
-    else { std::cout << m_socket.name() << ": Socket crating has Failed.\n"; }
+    else { std::cout << m_socket->name() << ": Socket crating has Failed.\n"; }
 
-    // Настройка соединения
-    if ( settingsRes = m_socket.setSettings( a_ipAddr, a_port, a_optFlag ) ) {
-        std::cout << m_socket.name() << ": Socket applied settings.\n";
+    // Попытка открытия сокета клиента
+    openRes = m_socket->open();
+    if (openRes) {
+        std::cout << m_socket->name() << ": Socket opened \n";
     }
-    else { std::cout << m_socket.name() << ": Socket appling settings has Failed.\n"; }
+    else { std::cout << m_socket->name() << ": Socket opening has Failed.\n"; }
 
-    return ( settingsRes && setupRes );
+    return setupRes && openRes;
 }
 
 /*****************************************************************************
@@ -87,21 +76,20 @@ bool C_Client::setupConnect( std::string a_ipAddr, int a_port, int a_type,
  *  false - ошибка при обмене данными либо закрытии сокета.
  *
  */
-bool C_Client::workingSession( int a_messPerSec, int a_workDuration )
-{
+bool C_Client::workingSession( int a_messPerSec, int a_workDuration ) {
     bool commRes = false;
     bool discRes = false;
 
 
-    std::cout << m_socket.name() << ": communication started.\n";
+    std::cout << m_socket->name() << ": communication started.\n";
 
     // запуск сетевого взяимодействия со стороны клиента
     if ( commRes = communication( a_messPerSec, a_workDuration ) ) {
-        std::cout << m_socket.name() << ": communication successfuly finished.\n";
+        std::cout << m_socket->name() << ": communication successfuly finished.\n";
     }
     // закрытие сокета
-    if ( discRes = m_socket.flush() ) {
-        std::cout << m_socket.name() << ": Socket closed.\n";
+    if ( discRes = m_socket->flush() ) {
+        std::cout << m_socket->name() << ": Socket closed.\n";
     }
 
     return commRes && discRes;
@@ -125,8 +113,7 @@ bool C_Client::workingSession( int a_messPerSec, int a_workDuration )
  *  false - ошибка при обмене данными либо закрытии сокета.
  *
  */
-bool C_Client::communication(int a_messPerSec, int a_workDuration)
-{
+bool C_Client::communication( int a_messPerSec, int a_workDuration ) {
     bool sendRes = false;
     bool recvRes = false;
 
@@ -138,22 +125,18 @@ bool C_Client::communication(int a_messPerSec, int a_workDuration)
 
     auto        start    = std::chrono::steady_clock::now();
     auto        end      = std::chrono::steady_clock::now();
-    sockaddr_in *seraddr = m_socket.servAddr();
     std::chrono::duration<double> curentWorkTime = end - start;
 
-    while(curentWorkTime.count() < a_workDuration)
-    {
+    while( curentWorkTime.count() < a_workDuration ) {
             ZeroMemory(&buffer, sizeof(buffer));
 
-            sendRes = m_socket.send(seraddr, strMessage, strlen(strMessage), &recvSize );
-            std::cout << m_socket.name() << ": Send message to " << inet_ntoa( m_socket.servAddr()->sin_addr )
-                      << " : " << ntohs( m_socket.servAddr()->sin_port ) << '\n';
+            sendRes = m_socket->send( strMessage, strlen(strMessage), &recvSize );
+            std::cout << m_socket->name() << ": Send message to " << '\n';
 
-            recvRes = m_socket.recv(seraddr, buffer, messageLen, &sendSize );
-            std::cout << m_socket.name() << ": Recived message from " << inet_ntoa( m_socket.servAddr()->sin_addr )
-                      << " : " << ntohs( m_socket.servAddr()->sin_port ) << '\n';
+            recvRes = m_socket->recv( buffer, messageLen, &sendSize );
+            std::cout << m_socket->name() << ": Recived message from " << '\n';
 
-            std::cout << m_socket.name() << ": Get number: " << static_cast<int>(*buffer) << '\n';
+            std::cout << m_socket->name() << ": Get number: " << static_cast<int>(*buffer) << '\n';
 
             end = std::chrono::steady_clock::now();
             curentWorkTime = end - start;
@@ -168,7 +151,20 @@ bool C_Client::communication(int a_messPerSec, int a_workDuration)
 /*****************************************************************************
  * Конструктор
  */
-C_Client::C_Client(){}
+C_Client::C_Client(){
+    creator = new I_SocketCreator();
+
+    m_socket = creator->MakeSocket("UDP");
+}
+
+/************************************************************************
+ * Деструктор
+ */
+C_Client::~C_Client()
+{
+    delete creator;
+    delete m_socket;
+}
 
 /*****************************************************************************
   Functions Prototypes

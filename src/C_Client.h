@@ -2,7 +2,7 @@
 
   C_Client
 
-  Класс предоставляет функционал сетевого клиента.
+  Предоставляет реализацию сетевого клиента.
 
   ОПИСАНИЕ
 
@@ -63,14 +63,17 @@
 
 
 *****************************************************************************/
+
 #pragma once
 
 #include <chrono>
+#include "i_socket.h"
+#include "i_socketcreator.h"
 
 #include "C_UDPSocket.h"
 
-namespace myTask {
 
+namespace myTask {
 /*****************************************************************************
   Macro Definitions
 *****************************************************************************/
@@ -86,12 +89,13 @@ namespace myTask {
 class C_Client
 {
 public:
-    bool setSockName( std::string a_sockName );
+
+    C_Client();
+
+    ~C_Client();
 
     // Запуск сокета клиента
-    bool setupConnect( std::string a_ipAddr, int a_port, int a_type = SOCK_DGRAM,
-                       int a_protocol = IPPROTO_UDP, int a_ipFamily = AF_INET ,
-                       int a_optFlag = 1 );
+    bool setup( std::pair< std::string, short > a_conParam, int a_optFlag );
 
     // Закрытие сокета клиента
     bool flushConnect();
@@ -99,14 +103,16 @@ public:
     // Работа клиента
     bool workingSession( int a_messPerSec, int a_workDuration );
 
-    C_Client();
-    ~C_Client() = default;
+
 
 private:
+
+    // Объект инстанцирующий сокет необходимого протокола
+    I_SocketCreator* creator;
     // объект обеспечивающий связь клиента с сервером
-    C_UPDSocket m_socket;
+    I_Socket* m_socket;
     // размер буфера сообщений клиента
-    const int          m_BufSize = 512;
+    const int m_BufSize = 512;
 
     // Запуск сетевого взаимодействия с сервером
     bool communication( int messPerSec, int workDuration );
