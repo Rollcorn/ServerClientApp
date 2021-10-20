@@ -35,9 +35,14 @@ namespace myTask { // TODO
  * Конструктор
  */
 C_Server::C_Server(){
-    creator = new I_SocketCreator();
+    I_SocketCreator* m_creator = new I_SocketCreator();
+    m_socket = m_creator->MakeSocket("UDP");
+    std::cout << " create sock " << m_socket << std::endl;
+    delete m_creator;
+}
 
-    m_socket = creator->MakeSocket("UDP");
+C_Server::~C_Server(){
+    delete m_socket;
 }
 
 
@@ -52,6 +57,7 @@ bool C_Server::flush(){
     bool discRes = false;
     bool flushRes = false;
 
+    // Попытка закрытия соединения
     discRes = m_socket->close();
     if ( discRes ){
         std::cout << m_socket->name() << ": Socket diconnected successfully.\n";
@@ -60,6 +66,7 @@ bool C_Server::flush(){
         std::cout << m_socket->name() << ": BAD Socket diconnect.\n";
     }
 
+    // Попытка освобождения ресурсов соединения
     flushRes = m_socket->flush();
     if ( discRes && flushRes ){
         std::cout << m_socket->name() << ": Socket closed successfully.\n";
@@ -81,12 +88,9 @@ bool C_Server::flush(){
  * о неудачном запуске.
  *
  * @param
- *   [in]    a_addr     - ip-адрес на котором открыт или необходимо открыть сокет сервера.
- *           a_protocol - протокол ip-соединения.
- *           a_type     - тип соединения.
- *           a_protocol - протокол соединения.
- *           a_ipFamily - тип домена сокета.
- *           a_optFlag  - флаговая переменная.
+ *   [in]    a_conParam - пара значений first - ip-адрес на котором необходимо
+ *                        открыть сокет сервера, second - порт соединения.
+ *           a_optFlag  - флаговая переменная опций сокета .
  *
  * @return
  *  true - setupConnect успешно выполнена.
@@ -95,10 +99,12 @@ bool C_Server::flush(){
  */
 bool C_Server::setup( std::pair<std::string, short> a_conParam, int a_optFlag ){
 
-    bool setupRes    = false;
-    bool openRes     = false;
+    bool setupRes = false; // Результат запуска сокета
+    bool openRes  = false; // Результат открытия соединения сокета
 
+    std::cout << " Server setup " << '\n';
     // Инициализация сокета клиента
+    std::cout << " sock " << m_socket << std::endl;
     setupRes = m_socket->setup( a_conParam, a_optFlag );
     if ( setupRes ){
         std::cout << m_socket->name() << ": Socket created \n";
@@ -172,9 +178,7 @@ bool C_Server::workingSession()
 bool C_Server::communication( int a_buffSize ) {
     std::cout << m_socket->name() << ": Start communication..." << '\n';
 
-    char buffer[a_buffSize];    // Буфер для полученных данных
-
-
+    char buffer[a_buffSize]; // Буфер для полученных данных
 
     std::random_device  rd;
     std::mt19937        gen(rd());

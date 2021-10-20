@@ -26,6 +26,21 @@ namespace myTask {
 
 
 /*****************************************************************************
+ * Конструктор
+ */
+C_Client::C_Client() {}
+
+
+/************************************************************************
+ * Деструктор
+ */
+C_Client::~C_Client() {
+    delete m_creator;
+    delete m_socket;
+}
+
+
+/*****************************************************************************
  * Запуск сокета сервера
  *
  * Функция последовательно вызывает необходимые методы объекта m_socket предоставляющего
@@ -40,7 +55,7 @@ bool C_Client::setup( std::pair<std::string, short> a_conParam,
                             int a_optFlag ) {
 
     bool setupRes = false; // Результат запуска сокета
-    bool openRes = false; // Результат открытия соединения сокета
+    bool openRes  = false; // Результат открытия соединения сокета
 
     // Попытка инициализации сокета клиента
     setupRes = m_socket->setup( a_conParam, a_optFlag );
@@ -118,7 +133,7 @@ bool C_Client::communication( int a_messPerSec, int a_workDuration ) {
     bool recvRes = false;
 
     char buffer[m_BufSize];
-    char *strMessage    = "Give me a number!";
+    char *strMessage = "Give me a number!";
     int   messageLen = sizeof(int);
     int   sendSize   = 0;
     int   recvSize   = 0;
@@ -147,24 +162,6 @@ bool C_Client::communication( int a_messPerSec, int a_workDuration ) {
     return sendRes && recvSize;
 }
 
-
-/*****************************************************************************
- * Конструктор
- */
-C_Client::C_Client(){
-    creator = new I_SocketCreator();
-
-    m_socket = creator->MakeSocket("UDP");
-}
-
-/************************************************************************
- * Деструктор
- */
-C_Client::~C_Client()
-{
-    delete creator;
-    delete m_socket;
-}
 
 /*****************************************************************************
   Functions Prototypes

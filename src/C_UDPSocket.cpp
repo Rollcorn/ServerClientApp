@@ -2,7 +2,7 @@
 
   C_Socket
 
-  Предоставляет методы для создания сокета и работы с ними.
+  Предоставляет реализацию сокета протокола UDP.
 
 *****************************************************************************/
 
@@ -57,7 +57,11 @@ bool C_UDPSocket::initWinsock(){
     if ( initState != 0){
         std::cout << m_sockName << ": Failed. Error Code : " << WSAGetLastError() << '\n';
     }
-    else { initRes = true;}
+    else {
+        std::cout << m_sockName << ": Successfull init winsock : " << WSAGetLastError() << '\n';
+
+        initRes = true;
+    }
 
     m_wsadata = wsadata;
 
@@ -78,6 +82,7 @@ bool C_UDPSocket::initWinsock(){
  */
 bool C_UDPSocket::setup( std::pair<std::string, short> a_conParam,
                          int a_optFlag = optNonblock ){
+    std::cout << m_sockName << "Start setup" << '\n';
 
     // Инициализация ip-адреса и порта сокета
     m_servIpAddr = a_conParam.first;
@@ -250,8 +255,7 @@ bool C_UDPSocket::flush() {
  */
 std::__cxx11::string C_UDPSocket::name()
 {
-    std::string name = m_servIpAddr.append(" : " + m_servPort);
-    return name;
+    return m_servIpAddr;
 }
 
 /*****************************************************************************

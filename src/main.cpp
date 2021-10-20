@@ -42,7 +42,8 @@ int main()
     // Инициализация параметров соединия
     std::string addr = "127.0.0.1";
     short         port = 8080;
-    std::pair<std::string, short> connectData = {addr, port};
+    std::pair<std::string, short> connectData{addr, port};
+    std::cout << connectData.first << " " << connectData.second << '\n';
 
     int messPerS     = 1;   // частота отправки запросов на сервевер (сообщений в секунду)
     int workDuration = 30;  // длительность работы клиента
@@ -50,14 +51,16 @@ int main()
     myTask::C_Server myServer;
     myTask::C_Client myClient;
 
-    std::thread server_thread( [&]{ if ( myServer.setup( connectData, 1) )
+    std::cout << " Thread 1 " << '\n';
+    std::thread server_thread( [&]{ if ( myServer.setup( connectData, 1) ){
                                          myServer.workingSession();
-                                    else std::cout << "Server Setup ERROR!\n";
+                                    } else { std::cout << "Server Setup ERROR!\n"; }
                                   } );
 
-    std::thread client_thread( [&]{ if ( myClient.setup( connectData, 1 ) )
+    std::cout << " Thread 2 " << '\n';
+    std::thread client_thread( [&]{ if ( myClient.setup( connectData, 1 ) ){
                                          myClient.workingSession(messPerS, workDuration);
-                                    else std::cout << "Client Setup ERROR!\n";
+                                    } else { std::cout << "Client Setup ERROR!\n"; }
                                   } );
 
     server_thread.join();
