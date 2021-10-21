@@ -22,8 +22,7 @@
 
 #include <string>
 
-#include "i_socket.h"
-
+#include "I_Socket.h"
 #include "C_UdpSocket.h"
 
 
@@ -41,14 +40,15 @@ namespace myTask {
   Types and Classes Definitions
 *****************************************************************************/
 
-    // Фабричный метод создания сокета
-    I_Socket * CreateSocket( std::string a_protoName );
 
 
 /*****************************************************************************
   Functions Prototypes
 *****************************************************************************/
 
+
+// Фабричный метод создания сокета
+I_Socket * CreateSocket( std::string a_protoName );
 
 /*****************************************************************************
   Variables Deсlarations

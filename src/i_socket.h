@@ -2,7 +2,7 @@
 
   i_Socket
 
-  Предоставляет минимально необходимые методы для реализаци сокета
+  Интерфес минимально необходимых методов для реализаци сокета
 
 
   ИСПОЛЬЗОВАНИЕ
@@ -51,18 +51,29 @@ namespace myTask {
 class I_Socket {
 
 public:
+
     I_Socket(){}
 
     virtual ~I_Socket(){}
 
-    // Запуск сокета
-    virtual bool setup( std::pair<std::string, short> a_conParam,
-			int a_optFlag ) = 0;
+    /**************************************************************************
+     * Запуск сокета
+     *
+     * Выполняется инициализация ip-адреса и порта сокета, структуры адреса
+     * сокета, выполнения дополнительных опций сокета
+     *
+     * @param conParam - пара значений first - IP-адрес,
+     *                                 second - порт;
+     *        a_sockAddr - структура адреса сокетаl;
+     *        a_optFlag  - флаговая переменная, дополнительных опций сокета
+     */
+    virtual bool setup( std::pair<std::string, short> a_conParam, struct sockaddr_in *a_sockAddr,
+                        int a_optFlag ) = 0;
 
     // Cвязывание сокета с локальным адресом протокола
     virtual bool open() = 0;
 
-//    Соединение сокета с удаленным адресом
+    // Соединение сокета с удаленным адресом
 //    virtual bool connect() = 0;
 
     // Получение данных
@@ -76,6 +87,12 @@ public:
 
     // Закрытие сокета
     virtual bool flush() = 0;
+
+    // Cтруктура адреса собственного сокета
+    virtual struct sockaddr_in * ownSockAdr() = 0;
+
+    // Получение адреса удаленного сокета
+    virtual struct sockaddr_in * remoteSockAdr() = 0;
 
     // Имя сокета (ip - port)
     virtual std::string name() = 0;

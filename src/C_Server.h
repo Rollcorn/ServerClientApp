@@ -51,10 +51,9 @@
 #include <ctime>
 #include <typeinfo>
 
-#include "i_socket.h"
-#include "i_socketcreator.h"
-
-#include "C_UDPSocket.h"
+#include "I_Socket.h"
+#include "SocketCreator.h"
+#include "C_UdpSocket.h"
 
 namespace myTask {
 

@@ -86,7 +86,7 @@
 #include <vector>
 #include <utility>
 
-#include "i_socket.h"
+#include "I_Socket.h"
 
 
 /*****************************************************************************
@@ -103,17 +103,17 @@ namespace myTask {
   Types and Classes Definitions
 *****************************************************************************/
 
-class C_UDPSocket : public I_Socket {
+class C_UdpSocket : public I_Socket {
 
 public:
 
-    C_UDPSocket();
+    C_UdpSocket();
 
-    virtual ~C_UDPSocket();
+    virtual ~C_UdpSocket();
 
     // Запуск сокета
     virtual bool setup( std::pair<std::string, short> a_conParam,
-                        int a_optFlag );
+                        struct sockaddr_in * a_sockAddr, int a_optFlag );
 
     // Cвязывание сокет с локальным адресом протокола
     virtual bool open();
@@ -133,14 +133,11 @@ public:
     // Имя сокета (ip - port)
     virtual std::string name();
 
-    // Получение структуры собственного адреса
-    struct sockaddr_in * ownAddr();
+    // Cтруктура адреса собственного сокета
+    virtual sockaddr_in * ownSockAdr();
 
-    // Получение структуры удаленного адреса
-    struct sockaddr_in * remoteAddr();
-
-    // Получение ip адреса сервера
-    std::string ipAddress();
+    // Получение адреса удаленного сокета
+    virtual sockaddr_in * remoteSockAdr();
 
 
 private:
@@ -152,29 +149,27 @@ private:
     bool setNonblock();
 
     // Параметры протокола
-    int m_ipFamily = T_SockTransProt.UDP.a_ipFamily; // IP протокол соединения
-    int m_type     = T_SockTransProt.UDP.a_type;     // тип соединения сокета
-    int m_protocol = T_SockTransProt.UDP.a_protocol; // протокол соединения сокета
+    int m_ipFamily = AF_INET;     // IP протокол соединения
+    int m_type     = SOCK_DGRAM;  // тип соединения сокета
+    int m_protocol = IPPROTO_UDP; // протокол соединения сокета
 
     // Параметры соединения
-    std::string m_servIpAddr;   // IP адресс сервера
-    short       m_servPort;     // Порт сервера
-    std::string m_sockName;     // Имя сокета отображаемое в логе
+    std::string         m_servIpAddr; // IP адресс сервера
+    short               m_servPort;   // Порт сервера
+    struct sockaddr_in *m_ownAddr;    // структура адреса собственного сокета IPv4
+    struct sockaddr_in *m_remoteAddr; // структура адреса удаленного сокета IPv4
 
-    struct sockaddr_in *m_ownAddr;    // Параметры соединения сервера
-    struct sockaddr_in *m_remoteAddr; // Параметры соединения клиента
-
-    // Данные сокета
-    WSADATA m_wsadata;
+    /** Данные сокета **/
+    WSADATA m_wsadata; // Объект библиотеки winsock2
     int     m_sockFd = INVALID_SOCKET;  // дескриптор сокета
 
 protected:
 
     struct T_SockTransProt{
         struct {
-            int a_protocol = IPPROTO_UDP;
-            int a_type     = SOCK_DGRAM;
-            int a_ipFamily = AF_INET;
+            int protocol = IPPROTO_UDP;
+            int type     = SOCK_DGRAM;
+            int ipFamily = AF_INET;
         } UDP;
     } T_SockTransProt;
 
@@ -191,6 +186,7 @@ protected:
   Functions Prototypes
 *****************************************************************************/
 
+
 /*****************************************************************************
   Variables Deсlarations
 *****************************************************************************/
@@ -199,6 +195,6 @@ protected:
 /*****************************************************************************
   Inline Functions Definitions
 *****************************************************************************/
-}//mySocket
+} // namespace myTask
 
 

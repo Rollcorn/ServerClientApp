@@ -35,7 +35,6 @@ C_Client::C_Client() {}
  * Деструктор
  */
 C_Client::~C_Client() {
-    delete m_creator;
     delete m_socket;
 }
 
@@ -47,31 +46,27 @@ C_Client::~C_Client() {
  * интрефейс для работы сокета
  *
  * @param
- *   [in]    a_addr     - ip-адрес на котором открыт или необходимо открыть сокет сервера.
+ *   [in]    a_conParam - пара значений: first - ip-адрес на котором открывать сокет,
+ *                                       second - порт открыть сокет этого сокета.
  *           a_protocol - протокол ip-соединения.
  *
+ *
  */
-bool C_Client::setup( std::pair<std::string, short> a_conParam,
-                            int a_optFlag ) {
+bool C_Client::setup( std::pair<std::string, short> a_conParam, int a_optFlag ) {
 
     bool setupRes = false; // Результат запуска сокета
-    bool openRes  = false; // Результат открытия соединения сокета
+
+    // Инстанцируем необходимый  сокет
+    m_socket = CreateSocket("UDP");
 
     // Попытка инициализации сокета клиента
-    setupRes = m_socket->setup( a_conParam, a_optFlag );
+    setupRes = m_socket->setup( a_conParam, m_socket->remoteSockAdr(), a_optFlag );
     if (setupRes) {
-        std::cout << m_socket->name() << ": Socket created \n";
+        std::cout << m_socket->name() << ": Socket created" << std::endl;
     }
-    else { std::cout << m_socket->name() << ": Socket crating has Failed.\n"; }
+    else { std::cout << m_socket->name() << ": Socket crating has Failed." << std::endl; }
 
-    // Попытка открытия сокета клиента
-    openRes = m_socket->open();
-    if (openRes) {
-        std::cout << m_socket->name() << ": Socket opened \n";
-    }
-    else { std::cout << m_socket->name() << ": Socket opening has Failed.\n"; }
-
-    return setupRes && openRes;
+    return setupRes;
 }
 
 /*****************************************************************************
@@ -129,34 +124,51 @@ bool C_Client::workingSession( int a_messPerSec, int a_workDuration ) {
  *
  */
 bool C_Client::communication( int a_messPerSec, int a_workDuration ) {
-    bool sendRes = false;
-    bool recvRes = false;
+    bool sendRes = true; // результат отправки данных
+    bool recvRes = true; // Результат получения данных
 
     char buffer[m_BufSize];
-    char *strMessage = "Give me a number!";
+    char *strMessage = "Give me a number!"; // Запрос клиента
     int   messageLen = sizeof(int);
-    int   sendSize   = 0;
-    int   recvSize   = 0;
 
-    auto        start    = std::chrono::steady_clock::now();
-    auto        end      = std::chrono::steady_clock::now();
+    int   sendSize   = 0; // Размер отправленных данных
+    int   recvSize   = 0; // Размер принятых данных
+
+    // Объявление таймера работы клиента
+    auto start  = std::chrono::steady_clock::now();
+    auto end    = std::chrono::steady_clock::now();
     std::chrono::duration<double> curentWorkTime = end - start;
 
-    while( curentWorkTime.count() < a_workDuration ) {
-            ZeroMemory(&buffer, sizeof(buffer));
+    std::cout << m_socket->name() << ": Client Start communication...\n" << std::endl;
 
-            sendRes = m_socket->send( strMessage, strlen(strMessage), &recvSize );
-            std::cout << m_socket->name() << ": Send message to " << '\n';
+    while( ( curentWorkTime.count() < a_workDuration ) && sendRes && recvRes ) {
 
-            recvRes = m_socket->recv( buffer, messageLen, &sendSize );
-            std::cout << m_socket->name() << ": Recived message from " << '\n';
+        // Очищение буфера
+        ZeroMemory( &buffer, sizeof(*buffer) );
+        std::cout << std::endl;
 
-            std::cout << m_socket->name() << ": Get number: " << static_cast<int>(*buffer) << '\n';
+        // Попытка отправки запроса серверу
+        sendRes = m_socket->send( strMessage, strlen(strMessage), &sendSize );
+        if( sendRes ){
+            std::cout << m_socket->name() << ": Sent message size: " << sendSize << std::endl;
+        } else {
+            std::cout << m_socket->name() << ": BAD Send in Client" << std::endl;
+        }
 
-            end = std::chrono::steady_clock::now();
-            curentWorkTime = end - start;
+        // Попытка получения сообщения от сервера
+        recvRes = m_socket->recv( buffer, messageLen, &recvSize );
+        if( recvRes ) {
+            std::cout << m_socket->name() << ": Recived message size: " << recvSize << std::endl;
+            std::cout << m_socket->name() << ": Get number: " << static_cast<int>(*buffer) << std::endl;
+        } else {
+            std::cout << m_socket->name() << ": BAD Reciev in Client" << std::endl;
+        }
 
-            Sleep( a_messPerSec * 1000 );
+        // Выдержка в 1с
+        Sleep( a_messPerSec * 1000 );
+        // Обновление таймера
+        end = std::chrono::steady_clock::now();
+        curentWorkTime = end - start;
     }
 
     return sendRes && recvSize;
@@ -171,8 +183,6 @@ bool C_Client::communication( int a_messPerSec, int a_workDuration ) {
   Variables Definitions
 *****************************************************************************/
 
-static const int s_servPort = 8080;
-static const char* s_servIpAddr = "127.0.0.1";
 
 /*****************************************************************************
   Functions Definitions

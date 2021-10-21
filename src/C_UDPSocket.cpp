@@ -27,7 +27,7 @@ namespace myTask{
 /*****************************************************************************
  * Конструктор
  */
-C_UDPSocket::C_UDPSocket() : m_ownAddr( new struct sockaddr_in),
+C_UdpSocket::C_UdpSocket() : m_ownAddr( new struct sockaddr_in),
     m_remoteAddr(new struct sockaddr_in ){
     initWinsock();
 }
@@ -35,7 +35,7 @@ C_UDPSocket::C_UDPSocket() : m_ownAddr( new struct sockaddr_in),
 /*****************************************************************************
  * Деструктор
  */
-C_UDPSocket::~C_UDPSocket(){
+C_UdpSocket::~C_UdpSocket(){
     delete m_ownAddr;
     delete m_remoteAddr;
 }
@@ -47,7 +47,7 @@ C_UDPSocket::~C_UDPSocket(){
  * выполняется инициация использования WS2_32.dll.
  *
  */
-bool C_UDPSocket::initWinsock(){
+bool C_UdpSocket::initWinsock(){
     bool initRes = false;
     int initState = false;
     WSADATA wsadata;
@@ -55,10 +55,10 @@ bool C_UDPSocket::initWinsock(){
     // Попытка инициализации библиотек сокета
     initState = WSAStartup( MAKEWORD(2,2), &wsadata );
     if ( initState != 0){
-        std::cout << m_sockName << ": Failed. Error Code : " << WSAGetLastError() << '\n';
+        std::cout << "Failed. Error Code : " << WSAGetLastError() << '\n';
     }
     else {
-        std::cout << m_sockName << ": Successfull init winsock : " << WSAGetLastError() << '\n';
+        std::cout << "Successfull init winsock : " << WSAGetLastError() << '\n';
 
         initRes = true;
     }
@@ -75,14 +75,10 @@ bool C_UDPSocket::initWinsock(){
  * Метод устанавливает сокету ip-адрес и порт, флаговая переменная
  * переводит сокет в режим неблокирующего ввода/вывода.
  *
- * @param
- *  [in] conParam - пара значений first - IP-адрес, second - порт
- *       a_optFlag  - флаговая переменная, при 1 метод вызовет функцию setNonblock.
  *
  */
-bool C_UDPSocket::setup( std::pair<std::string, short> a_conParam,
+bool C_UdpSocket::setup( std::pair<std::string, short> a_conParam, struct sockaddr_in * a_sockAddr,
                          int a_optFlag = optNonblock ){
-    std::cout << m_sockName << "Start setup" << '\n';
 
     // Инициализация ip-адреса и порта сокета
     m_servIpAddr = a_conParam.first;
@@ -93,17 +89,17 @@ bool C_UDPSocket::setup( std::pair<std::string, short> a_conParam,
     // Попытка запуска сокета на переданных ip-адресе и порту
     m_sockFd = socket( m_ipFamily , m_type, m_protocol );
     if ( m_sockFd == SOCKET_ERROR ) {
-        std::cout << m_sockName << ": Could not create socket : "
+        std::cout << "FAILED create socket : "
                   << WSAGetLastError() << '\n';
     }
     else { setupRes = true; }
 
     // Обнуление буфера
-    ZeroMemory( m_ownAddr, sizeof( *m_ownAddr ) );
+    ZeroMemory( a_sockAddr, sizeof( *a_sockAddr ) );
 
-    m_ownAddr->sin_family      = m_ipFamily;
-    m_ownAddr->sin_port        = htons(m_servPort);
-    m_ownAddr->sin_addr.s_addr = inet_addr(m_servIpAddr.c_str());
+    a_sockAddr->sin_family      = m_ipFamily;
+    a_sockAddr->sin_port        = htons(m_servPort);
+    a_sockAddr->sin_addr.s_addr = inet_addr(m_servIpAddr.c_str());
 
     // Установка, при необходимости, сокета в неблокирующий режим
     if( a_optFlag & optNonblock ){ setNonblock(); }
@@ -111,6 +107,29 @@ bool C_UDPSocket::setup( std::pair<std::string, short> a_conParam,
     return setupRes;
 }
 
+
+
+/*****************************************************************************
+ * Установка сокета в неблокирующий режим
+ *
+ * Изменяет флаг режим работы сокета на неблокирующий.
+ *
+ */
+bool C_UdpSocket::setNonblock(){
+    u_long flags = 0;
+    bool setupRes = false;
+    int blockingState;
+
+    // Попытка установки блокирующего режима
+    blockingState = ( ioctlsocket( m_sockFd, FIONBIO, &flags ) );
+    if (  blockingState != NO_ERROR ){
+        std::cout << "ioctlsocket failed with error: "
+                  << blockingState << '\n';
+    }
+    else { setupRes = true; }
+
+    return setupRes;
+}
 
 /*****************************************************************************
  * Cвязывание сокет с локальным адресом протокола
@@ -122,14 +141,14 @@ bool C_UDPSocket::setup( std::pair<std::string, short> a_conParam,
  *  [in] a_myAddr - структура собственного адреса сокета.
  *
  */
-bool C_UDPSocket::open(){
+bool C_UdpSocket::open(){
     bool openRes = false;
     int tryBind;
 
     // Попытка открытия сокета
     tryBind = bind( m_sockFd, (struct sockaddr *)m_ownAddr, sizeof(*m_ownAddr) );
     if( tryBind == SOCKET_ERROR ) {
-        std::cout << m_sockName << ": Bind failed with error code : "
+        std::cout << "Bind failed with error code : "
                   << WSAGetLastError() <<'\n';
     }
     else { openRes = true; }
@@ -137,27 +156,6 @@ bool C_UDPSocket::open(){
     return openRes;
 }
 
-/*****************************************************************************
- * Установка сокета в неблокирующий режим
- *
- * Изменяет флаг режим работы сокета на неблокирующий.
- *
- */
-bool C_UDPSocket::setNonblock(){
-    u_long flags = 0;
-    bool setupRes = false;
-    int blockingState;
-
-    // Попытка установки блокирующего режима
-    blockingState = ( ioctlsocket( m_sockFd, FIONBIO, &flags ) );
-    if (  blockingState != NO_ERROR ){
-        std::cout << m_sockName << ": ioctlsocket failed with error: "
-                  << blockingState << '\n';
-    }
-    else { setupRes = true; }
-
-    return setupRes;
-}
 
 /*****************************************************************************
  * Получение данных из сокета
@@ -174,16 +172,16 @@ bool C_UDPSocket::setNonblock(){
  *       a_recvSize - переменная для хранения размера полученных данных.
  *
  */
-bool C_UDPSocket::recv( char *a_data, int a_dataLen, int *a_recvSize ){
+bool C_UdpSocket::recv( char *a_data, int a_dataLen, int *a_recvSize ){
 
     bool recvRes = false;
-    int srcAddrLen = sizeof(*m_remoteAddr);
+    int slen = sizeof(*m_remoteAddr);
 
     //Попытка получения запроса
     *a_recvSize = recvfrom( m_sockFd, a_data, a_dataLen, 0,
-                            (struct sockaddr *)m_remoteAddr, &srcAddrLen );
+                            (struct sockaddr *)m_remoteAddr, &slen );
     if ( *a_recvSize == SOCKET_ERROR) {
-        std::cout << ": recvfrom() server failed with error code : "
+        std::cout << ": recvfrom() socket failed with error code : "
                   << WSAGetLastError() << '\n';
     }
     else { recvRes = true; }
@@ -210,7 +208,7 @@ bool C_UDPSocket::recv( char *a_data, int a_dataLen, int *a_recvSize ){
  *  иначе - ошибка.
  *
  */
-bool C_UDPSocket::send( char *a_data, int a_dataLen, int *a_sendSize ){
+bool C_UdpSocket::send( char *a_data, int a_dataLen, int *a_sendSize){
     bool sendRes = false;
     int slen = sizeof(*m_remoteAddr); // Определение размера длины адреса назначения
 
@@ -218,7 +216,7 @@ bool C_UDPSocket::send( char *a_data, int a_dataLen, int *a_sendSize ){
     *a_sendSize = sendto( m_sockFd,  a_data, a_dataLen, 0,
                           ( struct sockaddr *)m_remoteAddr, slen );
     if ( *a_sendSize == SOCKET_ERROR ) {
-         std::cout << m_sockName << ": sendto() failed with error code : "
+         std::cout << "sendto() failed with error code : "
                    << WSAGetLastError() << '\n';
     }
     else { sendRes = true; }
@@ -234,7 +232,7 @@ bool C_UDPSocket::send( char *a_data, int a_dataLen, int *a_sendSize ){
  * Выполняет отключение созданного сокета
  *
  */
-bool C_UDPSocket::close() {
+bool C_UdpSocket::close() {
     closesocket( m_sockFd );
     return true;
 
@@ -244,7 +242,7 @@ bool C_UDPSocket::close() {
  * Освобождение ресурсов
  *
  */
-bool C_UDPSocket::flush() {
+bool C_UdpSocket::flush() {
     WSACleanup();
     return true;
 }
@@ -253,42 +251,33 @@ bool C_UDPSocket::flush() {
  * Имя сокета
  *
  */
-std::__cxx11::string C_UDPSocket::name()
+std::string C_UdpSocket::name()
 {
-    return m_servIpAddr;
+    return  m_servIpAddr + ":" + std::to_string(m_servPort);
 }
 
 /*****************************************************************************
- * Получение собственной структуры адреса
+ * Cтруктура адреса собственного сокета
  *
  * @return
  *   m_myAddr - собственноая структура адреса сокета.
  *
  */
-struct sockaddr_in * C_UDPSocket::ownAddr(){
-    return m_ownAddr;
+sockaddr_in * C_UdpSocket::ownSockAdr(){
+    return  m_ownAddr;
 }
 
 /*****************************************************************************
- * Получение структуры адреса клиента
+ * Получение адреса удаленного сокета
  *
  * @return
  *   m_otherAddr - структура адреса сокета клиента.
  *
  */
-struct sockaddr_in * C_UDPSocket::remoteAddr(){
+sockaddr_in * C_UdpSocket::remoteSockAdr(){
     return m_remoteAddr;
 }
 
-/* Получение ip-адреса сокета
- *
- * @return
- *   m_servIpAddr - ip-адрес сокета сервера.
- *
- */
-std::string C_UDPSocket::ipAddress(){
-    return m_servIpAddr;
-}
 
 /*****************************************************************************
   Functions Prototypes

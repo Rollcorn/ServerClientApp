@@ -9,7 +9,7 @@
 
 *****************************************************************************/
 
-#include "i_socketcreator.h"
+#include "SocketCreator.h"
 
 
 /*****************************************************************************
@@ -44,13 +44,14 @@ namespace myTask{
  *
  * @return
  */
-I_Socket * CreateSocket(std::__cxx11::string a_protoName) {
+I_Socket * CreateSocket(std::string a_protoName) {
+    I_Socket* mySock = nullptr;
+
     if( a_protoName.compare("UDP") == 0 ) {
-        I_Socket* mySock = new C_UDPSocket;
-        return mySock;
+        mySock = new C_UdpSocket;
     }
 
-    return nullptr;
+    return mySock;
 }
 
 

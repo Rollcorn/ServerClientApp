@@ -34,58 +34,23 @@ namespace myTask { // TODO
 /*****************************************************************************
  * Конструктор
  */
-C_Server::C_Server(){
-    I_SocketCreator* m_creator = new I_SocketCreator();
-    m_socket = m_creator->MakeSocket("UDP");
-    std::cout << " create sock " << m_socket << std::endl;
-    delete m_creator;
-}
+C_Server::C_Server(){}
 
+
+/*****************************************************************************
+ * Деструктор
+ */
 C_Server::~C_Server(){
     delete m_socket;
 }
 
 
-
-/*****************************************************************************
- * Закрытие сокетета
- *
- * Прекращение соединения сокета с сервером и его закрытие.
- *
- */
-bool C_Server::flush(){
-    bool discRes = false;
-    bool flushRes = false;
-
-    // Попытка закрытия соединения
-    discRes = m_socket->close();
-    if ( discRes ){
-        std::cout << m_socket->name() << ": Socket diconnected successfully.\n";
-    }
-    else {
-        std::cout << m_socket->name() << ": BAD Socket diconnect.\n";
-    }
-
-    // Попытка освобождения ресурсов соединения
-    flushRes = m_socket->flush();
-    if ( discRes && flushRes ){
-        std::cout << m_socket->name() << ": Socket closed successfully.\n";
-    }
-    else {
-        std::cout << m_socket->name() << ": BAD Socket closed.\n";
-    }
-
-    return discRes && flushRes;
-}
-
 /*****************************************************************************
  * Запуск сокета сервера
  *
- * Функция запускает сокет - m_socket.setupSock,
- * настраивает подключение - m_socket.socketSettings,
- * открывает на установленном адресе соединие - m_socket.openSock.
- * При возникновении проблемы в одном из этапов метод возвращает false - информируя
- * о неудачном запуске.
+ * Функция запускает сокет - m_socket.setup, открывает на установленном адресе
+ * соединие - m_socket.open. При возникновении проблемы в одном из этапов
+ * метод возвращает false.
  *
  * @param
  *   [in]    a_conParam - пара значений first - ip-адрес на котором необходимо
@@ -93,8 +58,6 @@ bool C_Server::flush(){
  *           a_optFlag  - флаговая переменная опций сокета .
  *
  * @return
- *  true - setupConnect успешно выполнена.
- *  false - ошибка.
  *
  */
 bool C_Server::setup( std::pair<std::string, short> a_conParam, int a_optFlag ){
@@ -102,10 +65,12 @@ bool C_Server::setup( std::pair<std::string, short> a_conParam, int a_optFlag ){
     bool setupRes = false; // Результат запуска сокета
     bool openRes  = false; // Результат открытия соединения сокета
 
+    // Инстанцируем необходимый  сокет
+    m_socket = CreateSocket("UDP");
+
     std::cout << " Server setup " << '\n';
     // Инициализация сокета клиента
-    std::cout << " sock " << m_socket << std::endl;
-    setupRes = m_socket->setup( a_conParam, a_optFlag );
+    setupRes = m_socket->setup( a_conParam, m_socket->ownSockAdr(), a_optFlag );
     if ( setupRes ){
         std::cout << m_socket->name() << ": Socket created \n";
     }
@@ -122,6 +87,8 @@ bool C_Server::setup( std::pair<std::string, short> a_conParam, int a_optFlag ){
 
     return setupRes && openRes;
 }
+
+
 
 /*****************************************************************************
  * Работа сервера
@@ -176,7 +143,12 @@ bool C_Server::workingSession()
  *
  */
 bool C_Server::communication( int a_buffSize ) {
-    std::cout << m_socket->name() << ": Start communication..." << '\n';
+
+    bool recvRes = true;
+    bool sendRes = true;
+
+    int recvSize = 0;
+    int sendSize = 0;
 
     char buffer[a_buffSize]; // Буфер для полученных данных
 
@@ -184,31 +156,36 @@ bool C_Server::communication( int a_buffSize ) {
     std::mt19937        gen(rd());
     std::uniform_int_distribution<int> dist( -100, 100 );
 
-    // Очищение буфера
-    ZeroMemory( &buffer, a_buffSize );
 
-    while( true ) {
+    std::cout << m_socket->name() << ": Server Start communication...\n" << std::endl;
+
+    while( recvRes && sendRes ) {
+        recvRes = false;
+        sendRes = false;
+
+        // Очищение буфера
+        ZeroMemory( &buffer, a_buffSize );
 
         std::cout << m_socket->name() << ": Waiting for data...\n";
         fflush(stdout);
 
         // Генерируется случайное число
         int num = dist(gen);
-        int recvSize = 0;
-        int sendSize = 0;
-        bool recvRes = false;
-        bool sendRes = false;
 
-        // Получение запроса от клиента
-        recvRes = m_socket->recv( buffer, sizeof(buffer), &recvSize );
+        // Попытка получения запроса от клиента
+        recvRes = m_socket->recv( buffer, a_buffSize, &recvSize );
         if ( recvRes ){
-            std::cout << m_socket->name() << ": Recived message from " << '\n';
+            std::cout << m_socket->name() << ": Recived message size: " << recvSize << '\n';
+        } else {
+            std::cout << m_socket->name() << ": BAD Reciev in Server" << std::endl;
         }
 
-        // Отправка ответа клиенту
-        sendRes = m_socket->send( (char *)&num, sizeof(num), &sendSize );
-        if ( sendRes ){
-            std::cout << m_socket->name() << ": Sent message to " << '\n';
+        // Попытка отправки ответа клиенту на его запрос
+        if ( recvRes ) { sendRes = m_socket->send( (char *)&num, sizeof(num), &sendSize ); }
+        if ( sendRes ) {
+            std::cout << m_socket->name() << ": Sent message size: " << sendSize << '\n';
+        } else {
+            std::cout << m_socket->name() << ": BAD Send in Server" << std::endl;
         }
     }
 
@@ -216,14 +193,47 @@ bool C_Server::communication( int a_buffSize ) {
 }
 
 
+/*****************************************************************************
+ * Закрытие сокетета
+ *
+ * Прекращение соединения сокета с сервером и его закрытие.
+ *
+ */
+bool C_Server::flush(){
+    bool discRes = false;
+    bool flushRes = false;
+
+    // Попытка закрытия соединения
+    discRes = m_socket->close();
+    if ( discRes ){
+        std::cout << m_socket->name() << ": Socket diconnected successfully.\n";
+    }
+    else {
+        std::cout << m_socket->name() << ": BAD Socket diconnect.\n";
+    }
+
+    // Попытка освобождения ресурсов соединения
+    flushRes = m_socket->flush();
+    if ( discRes && flushRes ){
+        std::cout << m_socket->name() << ": Socket closed successfully.\n";
+    }
+    else {
+        std::cout << m_socket->name() << ": BAD Socket closed.\n";
+    }
+
+    return discRes && flushRes;
+}
+
 
 /*****************************************************************************
   Functions Prototypes
 *****************************************************************************/
 
+
 /*****************************************************************************
   Variables Definitions
 *****************************************************************************/
+
 
 /*****************************************************************************
   Functions Definitions

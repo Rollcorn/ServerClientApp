@@ -2,13 +2,13 @@ QT += core
 QT -= gui
 
 TARGET = ServerClient
-CONFIG += console
+CONFIG += console c++14
 CONFIG -= app_bundle
+CONFIG -= qt
 
-LIBS += C:\Qt\2009.04\mingw\lib\libws2_32.a
-
+LIBS += -lws2_32
 
 TEMPLATE = app
 
 SOURCES	+= *.cpp
-SOURCES += *.h
+HEADERS += *.h
