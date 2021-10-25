@@ -2,13 +2,11 @@
 
   C_CLient
 
-  Предоставляет реализацию сетевого клиента.
-
+  Реализация сетевого клиента.
 
 *****************************************************************************/
 
 #include "C_Client.h"
-
 
 namespace myTask {
 
@@ -24,35 +22,37 @@ namespace myTask {
   Types and Classes Definitions
 *****************************************************************************/
 
-
 /*****************************************************************************
  * Конструктор
  */
-C_Client::C_Client() {}
-
+C_Client::C_Client()
+{
+}
 
 /************************************************************************
  * Деструктор
  */
-C_Client::~C_Client() {
+C_Client::~C_Client()
+{
     delete m_socket;
 }
 
-
 /*****************************************************************************
- * Запуск сокета сервера
+ * Создание/запуск сокета клиента
  *
- * Функция последовательно вызывает необходимые методы объекта m_socket предоставляющего
- * интрефейс для работы сокета
+ * Осуществляет попытку создания объекта обмена данными - сокет, на указанном
+ * адресе - ip + порт, и сообщает об об успешности этой завершения операции.
  *
  * @param
  *   [in]    a_conParam - пара значений: first - ip-адрес на котором открывать сокет,
  *                                       second - порт открыть сокет этого сокета.
  *           a_protocol - протокол ip-соединения.
  *
- *
+ * @return
+ *  успешность создания сокета.
  */
-bool C_Client::setup( std::pair<std::string, short> a_conParam, int a_optFlag ) {
+bool C_Client::setup( std::pair<std::string, short> a_conParam, int a_optFlag )
+{
 
     bool setupRes = false; // Результат запуска сокета
 
@@ -62,9 +62,9 @@ bool C_Client::setup( std::pair<std::string, short> a_conParam, int a_optFlag ) 
     // Попытка инициализации сокета клиента
     setupRes = m_socket->setup( a_conParam, m_socket->remoteSockAdr(), a_optFlag );
     if (setupRes) {
-        std::cout << m_socket->name() << ": Socket created" << std::endl;
+        std::cout << m_socket->name() << ": Client Socket creating SUCCESS" << std::endl;
     }
-    else { std::cout << m_socket->name() << ": Socket crating has Failed." << std::endl; }
+    else { std::cout << m_socket->name() << ": Client Socket crating FAILED." << std::endl; }
 
     return setupRes;
 }
@@ -72,8 +72,8 @@ bool C_Client::setup( std::pair<std::string, short> a_conParam, int a_optFlag ) 
 /*****************************************************************************
  * Работа клиента
  *
- * Парметры a_messPerSec и a_workDuration передаваются в функцию communication и выбираются
- * в зависимости от необходимой длительности работы клиента.
+ * Парметры a_messPerSec и a_workDuration передаваются в функцию communication и
+ * выбираются в зависимости от необходимой длительности работы клиента.
  * По истечении времени a_workDuration клиент закрывает сокет и функция возвращает
  * true если обмен данными состоялся успешно и сокет успешно закрылся.
  *
@@ -82,28 +82,31 @@ bool C_Client::setup( std::pair<std::string, short> a_conParam, int a_optFlag ) 
  *       a_workDuration - длительность работы клиента.
  *
  * @return
- *  true - workingSession успешно выполнена.
- *  false - ошибка при обмене данными либо закрытии сокета.
- *
+ *  корректность провдения сетевого взаимодействия
  */
-bool C_Client::workingSession( int a_messPerSec, int a_workDuration ) {
+bool C_Client::workingSession( int a_messPerSec, int a_workDuration )
+{
     bool commRes = false;
     bool discRes = false;
 
+    std::cout << m_socket->name() << ": Client Communication started. " << std::endl;
 
-    std::cout << m_socket->name() << ": communication started.\n";
-
-    // запуск сетевого взяимодействия со стороны клиента
-    if ( commRes = communication( a_messPerSec, a_workDuration ) ) {
-        std::cout << m_socket->name() << ": communication successfuly finished.\n";
+    // Попытка запуска сетевого взяимодействия со стороны клиента
+    commRes = communication( a_messPerSec, a_workDuration );
+    if (commRes) {
+        std::cout << m_socket->name() << ": Client Communication SUCCESS. " << std::endl;
     }
-    // закрытие сокета
-    if ( discRes = m_socket->flush() ) {
-        std::cout << m_socket->name() << ": Socket closed.\n";
+    else {
+        std::cout << m_socket->name() << ": Client Communication FAILED. " << std::endl;
+    }
+
+    // Попытка закрытия сокета
+    discRes = m_socket->flush();
+    if (discRes) {
+        std::cout << m_socket->name() << ": Client Socket closed SUCCESS. " << std::endl;
     }
 
     return commRes && discRes;
-
 }
 
 /*****************************************************************************
@@ -119,16 +122,15 @@ bool C_Client::workingSession( int a_messPerSec, int a_workDuration ) {
  *                       запрсов) в секундах.
  *
  * @return
- *  true - все отправки и все получения данных прошли успешно.
- *  false - ошибка при обмене данными либо закрытии сокета.
- *
+ *  корректность обмена даннымис удаленным сокетом
  */
-bool C_Client::communication( int a_messPerSec, int a_workDuration ) {
-    bool sendRes = true; // результат отправки данных
-    bool recvRes = true; // Результат получения данных
+bool C_Client::communication( int a_messPerSec, int a_workDuration )
+{
+    bool  sendRes = true; // результат отправки данных
+    bool  recvRes = true; // Результат получения данных
 
-    char buffer[m_BufSize];
-    char *strMessage = "Give me a number!"; // Запрос клиента
+    char  buffer[m_BufSize];
+    std::string  strMessage = "Give me a number!"; // Запрос клиента
     int   messageLen = sizeof(int);
 
     int   sendSize   = 0; // Размер отправленных данных
@@ -141,31 +143,33 @@ bool C_Client::communication( int a_messPerSec, int a_workDuration ) {
 
     std::cout << m_socket->name() << ": Client Start communication...\n" << std::endl;
 
-    while( ( curentWorkTime.count() < a_workDuration ) && sendRes && recvRes ) {
+    while ( ( curentWorkTime.count() < a_workDuration ) && sendRes && recvRes ) {
 
         // Очищение буфера
-        ZeroMemory( &buffer, sizeof(*buffer) );
+        ZeroMemory( buffer, sizeof(*buffer)*m_BufSize );
         std::cout << std::endl;
 
         // Попытка отправки запроса серверу
-        sendRes = m_socket->send( strMessage, strlen(strMessage), &sendSize );
-        if( sendRes ){
-            std::cout << m_socket->name() << ": Sent message size: " << sendSize << std::endl;
-        } else {
-            std::cout << m_socket->name() << ": BAD Send in Client" << std::endl;
+        sendRes = m_socket->send( &strMessage[0], strMessage.size(), &sendSize );
+        if(sendRes){
+            std::cout << m_socket->name() << ": Client Sent message size: " << sendSize << std::endl;
+        }
+        else {
+            std::cout << m_socket->name() << ": BAD Send on Client" << std::endl;
         }
 
         // Попытка получения сообщения от сервера
         recvRes = m_socket->recv( buffer, messageLen, &recvSize );
-        if( recvRes ) {
-            std::cout << m_socket->name() << ": Recived message size: " << recvSize << std::endl;
+        if(recvRes) {
+            std::cout << m_socket->name() << ": Client Recived message size: " << recvSize << std::endl;
             std::cout << m_socket->name() << ": Get number: " << static_cast<int>(*buffer) << std::endl;
-        } else {
-            std::cout << m_socket->name() << ": BAD Reciev in Client" << std::endl;
+        }
+        else {
+            std::cout << m_socket->name() << ": BAD Reciev on Client" << std::endl;
         }
 
-        // Выдержка в 1с
-        Sleep( a_messPerSec * 1000 );
+        Sleep( a_messPerSec * 1000 ); // Выдержка в 1 секнду
+
         // Обновление таймера
         end = std::chrono::steady_clock::now();
         curentWorkTime = end - start;
@@ -173,7 +177,6 @@ bool C_Client::communication( int a_messPerSec, int a_workDuration ) {
 
     return sendRes && recvSize;
 }
-
 
 /*****************************************************************************
   Functions Prototypes
@@ -183,10 +186,9 @@ bool C_Client::communication( int a_messPerSec, int a_workDuration ) {
   Variables Definitions
 *****************************************************************************/
 
-
 /*****************************************************************************
   Functions Definitions
 *****************************************************************************/
 
-} // namespace client
+} // namespace myTask
 

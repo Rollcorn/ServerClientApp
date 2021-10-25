@@ -26,7 +26,7 @@
 
     2. Настройка сокета
 
-    socket.setup(...);
+    socket.setup( ... );
 
     3. Открытие сокета
     socket.open();
@@ -65,7 +65,6 @@
 
   * при создании экземпляра конструктор создает 2 структуры sockaddr_in для удаленного и собственного адреса.
 
-
 *****************************************************************************/
 
 #pragma once
@@ -75,26 +74,25 @@
 
 #endif
 
-
-#include <winsock2.h>
-#include <windows.h>
-#include <ws2tcpip.h>
-#include <iphlpapi.h>
 #include <iostream>
 #include <thread>
 #include <chrono>
 #include <vector>
 #include <utility>
 
+#include <winsock2.h>
+#include <windows.h>
+#include <ws2tcpip.h>
+#include <iphlpapi.h>
+
 #include "I_Socket.h"
 
+namespace myTask {
 
 /*****************************************************************************
   Macro Definitions
 *****************************************************************************/
 
-
-namespace myTask {
 /*****************************************************************************
   Forward Declarations
 *****************************************************************************/
@@ -103,7 +101,8 @@ namespace myTask {
   Types and Classes Definitions
 *****************************************************************************/
 
-class C_UdpSocket : public I_Socket {
+class C_UdpSocket : public I_Socket
+{
 
 public:
 
@@ -139,7 +138,6 @@ public:
     // Получение адреса удаленного сокета
     virtual sockaddr_in * remoteSockAdr();
 
-
 private:
 
     // Инициализация библиотеки WinSock2
@@ -148,23 +146,28 @@ private:
     // Установка сокета в неблокирующий режим
     bool setNonblock();
 
-    // Параметры протокола
+    /**
+     * Параметры протокола
+     */
     int m_ipFamily = AF_INET;     // IP протокол соединения
     int m_type     = SOCK_DGRAM;  // тип соединения сокета
     int m_protocol = IPPROTO_UDP; // протокол соединения сокета
 
-    // Параметры соединения
+    /**
+     * Параметры соединения
+     */
     std::string         m_servIpAddr; // IP адресс сервера
     short               m_servPort;   // Порт сервера
     struct sockaddr_in *m_ownAddr;    // структура адреса собственного сокета IPv4
     struct sockaddr_in *m_remoteAddr; // структура адреса удаленного сокета IPv4
 
-    /** Данные сокета **/
-    WSADATA m_wsadata; // Объект библиотеки winsock2
+    /**
+     * Данные сокета
+     */
+    WSADATA m_wsadata;                  // Объект библиотеки winsock2
     int     m_sockFd = INVALID_SOCKET;  // дескриптор сокета
 
 protected:
-
     struct T_SockTransProt{
         struct {
             int protocol = IPPROTO_UDP;
@@ -181,20 +184,18 @@ protected:
 
 };
 
-
 /*****************************************************************************
   Functions Prototypes
 *****************************************************************************/
-
 
 /*****************************************************************************
   Variables Deсlarations
 *****************************************************************************/
 
-
 /*****************************************************************************
   Inline Functions Definitions
 *****************************************************************************/
+
 } // namespace myTask
 
 
