@@ -44,6 +44,7 @@
 #include <random>
 #include <ctime>
 #include <typeinfo>
+#include <map>
 
 #include "I_Socket.h"
 #include "SocketCreator.h"
@@ -72,7 +73,7 @@ public:
     ~C_Server();
 
     // Запуск сервера
-    bool setup( std::pair<std::string, short> a_conParam, int a_optFlag = 1 );
+    bool setup( std::map<std::string, std::string> a_conParam, int a_optFlag = 1 );
 
     // Запуск работы сервера
     bool workingSession();
@@ -82,6 +83,9 @@ public:
 
 private:
 
+    std::string m_ipParam;
+    std::string m_portParam;
+
     // Обмен данными с клиентом
     bool communication(const int a_bufSize);    
 
@@ -90,8 +94,6 @@ private:
 
     // Размер буфера сервера
     const int m_servBufferSize = 1024;
-
-
 
 };
 

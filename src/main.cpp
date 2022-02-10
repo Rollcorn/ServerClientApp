@@ -61,6 +61,7 @@ int main()
 
     myTask::C_Server myServer;
     myTask::C_Client myClient;
+    std::cout << "test" << std::endl;
 
     std::thread server_thread( [&]{ if ( myServer.setup( connectData, 1) ){
                                          myServer.workingSession();

@@ -73,12 +73,12 @@ bool C_UdpSocket::initWinsock()
 /*****************************************************************************
  * Создание сокета
  */
-bool C_UdpSocket::setup( std::pair<std::string, short> a_conParam, struct sockaddr_in * a_sockAddr,
+bool C_UdpSocket::setup( std::string a_ipParam, std::string a_portParam,
                          int a_optFlag = optNonblock )
 {
     // Инициализация ip-адреса и порта сокета
-    m_servIpAddr = a_conParam.first;
-    m_servPort   = a_conParam.second;
+    m_ownIpAddr = a_ipParam;
+    m_ownPort   = a_portParam;
 
     bool setupRes = false;
     bool ret = true;
@@ -98,16 +98,16 @@ bool C_UdpSocket::setup( std::pair<std::string, short> a_conParam, struct sockad
 
     // Заполнение параметров буфера
     ZeroMemory( a_sockAddr, sizeof( *a_sockAddr ) );
-    a_sockAddr->sin_family      = m_ipFamily;
-    a_sockAddr->sin_port        = htons(m_servPort);
-    a_sockAddr->sin_addr.s_addr = inet_addr(m_servIpAddr.c_str());
+    m_ownAddr->sin_family      = m_ipFamily;
+    m_ownAddr->sin_port        = htons(m_ownPort);
+    m_ownAddr->sin_addr.s_addr = inet_addr(m_ownIpAddr.c_str());
 
     // Установка, при необходимости, сокета в неблокирующий режим
     if ( a_optFlag & optNonblock ) {
         setNonblock();
     }
 
-    return setupRes;
+    return ret & setupRes;
 }
 
 /*****************************************************************************
@@ -224,7 +224,7 @@ bool C_UdpSocket::flush()
  */
 std::string C_UdpSocket::name()
 {
-    return  m_servIpAddr + ":" + std::to_string(m_servPort);
+    return  m_ownIpAddr + ":" + std::to_string(m_ownPort);
 }
 
 /*****************************************************************************

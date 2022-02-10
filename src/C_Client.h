@@ -43,6 +43,7 @@
 #pragma once
 
 #include <chrono>
+#include <map>
 
 #include "I_Socket.h"
 #include "SocketCreator.h"
@@ -71,7 +72,7 @@ public:
     ~C_Client();
 
     // Создание/запуск сокета клиента
-    bool setup( std::pair< std::string, short > a_conParam, int a_optFlag );
+    bool setup( std::map<std::string, std::string> a_conParam, int a_optFlag );
 
     // Работа клиента
     bool workingSession( int a_messPerSec, int a_workDuration );

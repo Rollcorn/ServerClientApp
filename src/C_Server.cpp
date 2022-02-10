@@ -51,24 +51,29 @@ C_Server::~C_Server()
  * метод возвращает false.
  *
  * @param
- *   [in]    a_conParam - пара значений first - ip-адрес на котором необходимо
- *                        открыть сокет сервера, second - порт соединения.
+ *   [in]    a_conParam - вектор пар значений.
  *           a_optFlag  - флаговая переменная опций сокета .
  *
  * @return
  *
  */
-bool C_Server::setup( std::pair<std::string, short> a_conParam, int a_optFlag )
+bool C_Server::setup( std::map<std::string, std::string> a_conParam, int a_optFlag )
 {
+
     bool setupRes = false; // Результат запуска сокета
     bool openRes  = false; // Результат открытия соединения сокета
 
     // Инстанцируем необходимый  сокет
     m_socket = CreateSocket("UDP");
 
+    // Инициализация параметров соединения
+    m_ipParam = a_conParam.find("ip");
+    m_portParam = a_conParam.find("port");
+
     std::cout << " Server setup " << '\n';
+
     // Инициализация сокета клиента
-    setupRes = m_socket->setup( a_conParam, m_socket->ownSockAdr(), a_optFlag );
+    setupRes = m_socket->setup( m_ipParam, m_portParam, a_optFlag );
     if (setupRes) {
         std::cout << m_socket->name() << ": Server Socket creating SUCCESS " << std::endl;
     }
