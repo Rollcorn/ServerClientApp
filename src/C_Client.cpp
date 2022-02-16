@@ -51,16 +51,23 @@ C_Client::~C_Client()
  * @return
  *  успешность создания сокета.
  */
-bool C_Client::setup( std::pair<std::string, short> a_conParam, int a_optFlag )
+bool C_Client::setup( std::map<std::string, std::string> a_conParam )
 {
-
     bool setupRes = false; // Результат запуска сокета
 
     // Инстанцируем необходимый  сокет
     m_socket = CreateSocket("UDP");
 
+    // Инициализация параметров соединения
+    m_ownIp              = a_conParam.at("ownIp");
+    m_ownPort            = a_conParam.at("ownPort");
+    m_remIp              = a_conParam.at("remIp");
+    m_remPort            = a_conParam.at("remPort");
+
+    m_blocking = atoi( a_conParam.at("block").c_str() );
+
     // Попытка инициализации сокета клиента
-    setupRes = m_socket->setup( a_conParam, m_socket->remoteSockAdr(), a_optFlag );
+    setupRes = m_socket->setup( m_ownIp, m_ownPort, m_blocking );
     if (setupRes) {
         std::cout << m_socket->name() << ": Client Socket creating SUCCESS" << std::endl;
     }
@@ -122,16 +129,16 @@ bool C_Client::workingSession( int a_messPerSec, int a_workDuration )
  *                       запрсов) в секундах.
  *
  * @return
- *  корректность обмена даннымис удаленным сокетом
+ *  корректность обмена данными с удаленным сокетом
  */
 bool C_Client::communication( int a_messPerSec, int a_workDuration )
 {
     bool  sendRes = true; // результат отправки данных
     bool  recvRes = true; // Результат получения данных
 
-    char  buffer[m_BufSize];
-    std::string  strMessage = "Give me a number!"; // Запрос клиента
-    int   messageLen = sizeof(int);
+    char        buffer[m_BufSize];
+    std::string strMessage = "Give me a number!"; // Запрос клиента
+    int         messageLen = sizeof(int);
 
     int   sendSize   = 0; // Размер отправленных данных
     int   recvSize   = 0; // Размер принятых данных
@@ -146,11 +153,10 @@ bool C_Client::communication( int a_messPerSec, int a_workDuration )
     while ( ( curentWorkTime.count() < a_workDuration ) && sendRes && recvRes ) {
 
         // Очищение буфера
-        ZeroMemory( buffer, sizeof(*buffer)*m_BufSize );
-        std::cout << std::endl;
+        ZeroMemory( buffer, m_BufSize );
 
         // Попытка отправки запроса серверу
-        sendRes = m_socket->send( &strMessage[0], strMessage.size(), &sendSize );
+        sendRes = m_socket->send( m_remIp, m_remPort, &strMessage[0], &sendSize );
         if(sendRes){
             std::cout << m_socket->name() << ": Client Sent message size: " << sendSize << std::endl;
         }
@@ -159,7 +165,7 @@ bool C_Client::communication( int a_messPerSec, int a_workDuration )
         }
 
         // Попытка получения сообщения от сервера
-        recvRes = m_socket->recv( buffer, messageLen, &recvSize );
+        recvRes = m_socket->recv( m_remIp, m_remPort, buffer, &recvSize );
         if(recvRes) {
             std::cout << m_socket->name() << ": Client Recived message size: " << recvSize << std::endl;
             std::cout << m_socket->name() << ": Get number: " << static_cast<int>(*buffer) << std::endl;

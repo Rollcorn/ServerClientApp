@@ -31,6 +31,7 @@
 #include <iostream>
 #include <thread>
 #include <chrono>
+#include <map>
 
 namespace myTask {
 
@@ -66,8 +67,8 @@ public:
      *        a_sockAddr - структура адреса сокетаl;
      *        a_optFlag  - флаговая переменная, дополнительных опций сокета;
      */
-    virtual bool setup( std::pair<std::string, short> a_conParam,
-                        struct sockaddr_in *a_sockAddr, int a_optFlag ) = 0;
+    virtual bool setup( std::string a_ipParam, std::string a_portParam,
+                        int a_optFlag ) = 0;
 
     /*****************************************************************************
      * Cвязывание сокет с локальным адресом протокола
@@ -95,7 +96,8 @@ public:
      * @return
      *  корректность полученных от удаленного сокета данных
      */
-    virtual bool recv( char *a_data, int a_dataLen, int *a_recvSize ) = 0;
+    virtual bool recv( std::string a_remoteIp, std::string a_remotePort,
+                       char *a_data, int *a_recvSize ) = 0;
 
     /*****************************************************************************
      * Отправка данных
@@ -112,7 +114,8 @@ public:
      * @return
      *  успешность отправки данных в удаленный сокет
      */
-    virtual bool send( char *a_data, int a_dataLen, int *a_sendSize ) = 0;
+    virtual bool send( std::string a_remoteIp, std::string a_remotePort,
+                       char *a_data, int *a_sendSize ) = 0;
 
     /******************************************************************************
      * Закрытие соединения

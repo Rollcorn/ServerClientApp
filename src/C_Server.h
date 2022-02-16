@@ -73,7 +73,7 @@ public:
     ~C_Server();
 
     // Запуск сервера
-    bool setup( std::map<std::string, std::string> a_conParam, int a_optFlag = 1 );
+    bool setup( std::map<std::string, std::string> a_conParam);
 
     // Запуск работы сервера
     bool workingSession();
@@ -83,11 +83,15 @@ public:
 
 private:
 
-    std::string m_ipParam;
-    std::string m_portParam;
+    std::string m_ownIp;
+    std::string m_ownPort;
+    std::string m_remIp;
+    std::string m_remPort;
+    int         m_blocking;
+
 
     // Обмен данными с клиентом
-    bool communication(const int a_bufSize);    
+    bool communication( );
 
     // Объект обеспечивающий связь клиента с сервером
     I_Socket*  m_socket = nullptr;

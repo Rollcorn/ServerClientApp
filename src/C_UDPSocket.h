@@ -79,6 +79,7 @@
 #include <chrono>
 #include <vector>
 #include <utility>
+#include <map>
 
 #include <winsock2.h>
 #include <windows.h>
@@ -118,10 +119,12 @@ public:
     virtual bool open();
 
     // Получение данных
-    virtual bool recv( char *a_data, int a_dataLen, int *a_recvSize );
+    virtual bool recv( const std::string a_remoteIp, const std::string a_remotePort,
+                       char *a_data, int *a_recvSize );
 
     // Отправка данных
-    virtual bool send( char *a_data, int a_dataLen, int *a_sendSize );
+    virtual bool send( std::string a_remoteIp, std::string a_remotePort,
+                       char *a_data, int *a_sendSize );
 
     // Закрытие соединеия
     virtual bool close();

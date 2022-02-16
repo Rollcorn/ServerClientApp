@@ -6,7 +6,7 @@ CONFIG += console c++14
 CONFIG -= app_bundle
 CONFIG -= qt
 
-LIBS += -lws2_32
+win32:LIBS += -lws2_32
 
 TEMPLATE = app
 

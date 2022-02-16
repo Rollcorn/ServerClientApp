@@ -57,9 +57,8 @@ C_Server::~C_Server()
  * @return
  *
  */
-bool C_Server::setup( std::map<std::string, std::string> a_conParam, int a_optFlag )
+bool C_Server::setup( std::map<std::string, std::string> a_conParam )
 {
-
     bool setupRes = false; // Результат запуска сокета
     bool openRes  = false; // Результат открытия соединения сокета
 
@@ -67,13 +66,17 @@ bool C_Server::setup( std::map<std::string, std::string> a_conParam, int a_optFl
     m_socket = CreateSocket("UDP");
 
     // Инициализация параметров соединения
-    m_ipParam = a_conParam.find("ip");
-    m_portParam = a_conParam.find("port");
+    m_ownIp   = a_conParam.at("ownIp");
+    m_ownPort = a_conParam.at("ownPort");
+    m_remIp   = a_conParam.at("remIp");
+    m_remPort = a_conParam.at("remPort");
+
+    m_blocking = atoi( a_conParam.at("block").c_str() );
 
     std::cout << " Server setup " << '\n';
 
     // Инициализация сокета клиента
-    setupRes = m_socket->setup( m_ipParam, m_portParam, a_optFlag );
+    setupRes = m_socket->setup( m_ownIp, m_ownPort, m_blocking );
     if (setupRes) {
         std::cout << m_socket->name() << ": Server Socket creating SUCCESS " << std::endl;
     }
@@ -114,7 +117,7 @@ bool C_Server::workingSession()
     std::cout << m_socket->name() << ": Server communication started.\n";
 
     // Попытка запуска комуникации с сервером
-    workRes = communication( m_servBufferSize );
+    workRes = communication();
     if( workRes ) {
         std::cout << m_socket->name() << ": Server Start communacation SUCCESS. " << std::endl;
     } else {
@@ -141,7 +144,7 @@ bool C_Server::workingSession()
  * @return
  *  корректность обмена данными с удаленным сокетом
  */
-bool C_Server::communication( int a_buffSize )
+bool C_Server::communication()
 {
 
     bool recvRes = true;
@@ -150,7 +153,7 @@ bool C_Server::communication( int a_buffSize )
     int recvSize = 0;
     int sendSize = 0;
 
-    char buffer[a_buffSize]; // Буфер для полученных данных
+    char buffer[m_servBufferSize]; // Буфер для полученных данных
 
     std::random_device  rd;
     std::mt19937        gen( rd() );
@@ -166,7 +169,7 @@ bool C_Server::communication( int a_buffSize )
         sendRes = false;
 
         // Очищение буфера
-        ZeroMemory( &buffer, a_buffSize );
+        ZeroMemory( &buffer, m_servBufferSize );
 
         std::cout << m_socket->name() << ": Server Waiting for data... " << std::endl;
         fflush(stdout);
@@ -175,16 +178,17 @@ bool C_Server::communication( int a_buffSize )
         int num = dist(gen);
 
         // Попытка получения запроса от клиента
-        recvRes = m_socket->recv( buffer, a_buffSize, &recvSize );
+        recvRes = m_socket->recv( m_remIp, m_remPort, buffer, &recvSize );
         if (recvRes){
-            std::cout << m_socket->name() << ": Server Recived message size: " << recvSize << " " << std::endl;
+            std::cout << m_socket->name() << ": Server Recived message: " << buffer
+                      << " size: " << recvSize << " " << std::endl;
         }
         else {
             std::cout << m_socket->name() << ": BAD Reciev on Server " << std::endl;
         }
 
         // Попытка отправки ответа клиенту на его запрос
-        if (recvRes) { sendRes = m_socket->send( (char *)&num, sizeof(num), &sendSize ); }
+        if (recvRes) { sendRes = m_socket->send( m_remIp, m_remPort, (char *)&num, &sendSize ); }
         if (sendRes) {
             std::cout << m_socket->name() << ": Server Sent message size: " << sendSize << " " << std::endl;
         }
