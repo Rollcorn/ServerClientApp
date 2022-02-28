@@ -71,7 +71,7 @@ bool C_Server::setup( std::map<std::string, std::string> a_conParam )
     m_remIp   = a_conParam.at("remIp");
     m_remPort = a_conParam.at("remPort");
 
-    m_blocking = atoi( a_conParam.at("block").c_str() );
+    m_blocking = std::stoi( a_conParam.at("block") );
 
     std::cout << " Server setup " << '\n';
 
@@ -92,6 +92,9 @@ bool C_Server::setup( std::map<std::string, std::string> a_conParam )
     else {
         std::cout << m_socket->name() << ": Server Socket opening has FAILED." << std::endl;
     }
+
+    std::cout << "SERVER: own-" << m_ownIp << ":" << m_ownPort << " rem-"
+              << m_remIp << ":" << m_remPort << std::endl;
 
     return setupRes && openRes;
 }
@@ -114,7 +117,7 @@ bool C_Server::workingSession()
     bool workRes = false;
     bool flushRes = false;
 
-    std::cout << m_socket->name() << ": Server communication started.\n";
+    std::cout << m_socket->name() << ": SERVER COMUNICATION STARTED.\n";
 
     // Попытка запуска комуникации с сервером
     workRes = communication();
@@ -126,7 +129,6 @@ bool C_Server::workingSession()
 
     // Попытка закрыть соединение и освободить ресурсы соединения
     flushRes = flush();
-
 
     return workRes && flushRes;
 }
@@ -160,44 +162,51 @@ bool C_Server::communication()
     int a = -100, b = 100;
     std::uniform_int_distribution<int> dist( a, b );
 
-
-    std::cout << m_socket->name() << ": Server Start communication... " << std::endl;
-    std::cout << std::endl;
-
-    while ( recvRes && sendRes ) {
+    do {
         recvRes = false;
         sendRes = false;
 
         // Очищение буфера
-        ZeroMemory( &buffer, m_servBufferSize );
+        ZeroMemory( buffer, m_servBufferSize );
 
-        std::cout << m_socket->name() << ": Server Waiting for data... " << std::endl;
+        std::cout << m_socket->name() << ": Server Waiting for data... "
+                  << std::endl;
         fflush(stdout);
 
         // Генерируется случайное число
         int num = dist(gen);
+        std::cout << "rand num=" <<  num << std::endl;
 
         // Попытка получения запроса от клиента
         recvRes = m_socket->recv( m_remIp, m_remPort, buffer, &recvSize );
-        if (recvRes){
-            std::cout << m_socket->name() << ": Server Recived message: " << buffer
-                      << " size: " << recvSize << " " << std::endl;
+        if (recvRes) {
+            std::cout << m_socket->name() << ": Server Recived message: {"
+                      << buffer
+                      << "} size: " << recvSize << " " << std::endl;
         }
         else {
-            std::cout << m_socket->name() << ": BAD Reciev on Server " << std::endl;
+            std::cout << m_socket->name() << ": BAD Reciev on Server "
+                      << std::endl;
         }
 
+        std::string message = std::to_string(num);
+        std::cout << "RAND NUM STR " << message << ":" << sizeof(message) << std::endl;
+
         // Попытка отправки ответа клиенту на его запрос
-        if (recvRes) { sendRes = m_socket->send( m_remIp, m_remPort, (char *)&num, &sendSize ); }
+        if (recvRes) {
+            sendRes = m_socket->send( m_remIp, m_remPort,
+                                      message, &sendSize );
+        }
         if (sendRes) {
-            std::cout << m_socket->name() << ": Server Sent message size: " << sendSize << " " << std::endl;
+            std::cout << m_socket->name() << ": Server Sent message {"
+                      << message <<  "} size: " << sendSize << " " << std::endl;
         }
         else {
             std::cout << m_socket->name() << ": BAD Send on Server " << std::endl;
         }
-    }
+    } while ( recvRes && sendRes );
 
-    return true;
+    return recvRes && sendRes;
 }
 
 /*****************************************************************************
@@ -216,7 +225,8 @@ bool C_Server::flush()
     // Попытка закрытия соединения
     discRes = m_socket->close();
     if (discRes) {
-        std::cout << m_socket->name() << ": Server Socket diconnected successfully. " << std::endl;
+        std::cout << m_socket->name()
+                  << ": Server Socket diconnected successfully. " << std::endl;
     }
     else {
         std::cout << m_socket->name() << ": BAD Socket diconnect. " << std::endl;
@@ -225,7 +235,7 @@ bool C_Server::flush()
     // Попытка освобождения ресурсов соединения
     flushRes = m_socket->flush();
     if ( discRes && flushRes ) {
-        std::cout << m_socket->name() << ": Server Socket closed successfully. " << std::endl;
+        std::cout << m_socket->name() << ": SERVER SOCK CLOSED SUCCESS. " << std::endl;
     }
     else {
         std::cout << m_socket->name() << ": BAD Socket closed on Server. " << std::endl;

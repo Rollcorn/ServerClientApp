@@ -51,19 +51,15 @@
 int main()
 {
     // Инициализация параметров соединия для сервера
-    std::map<std::string, std::string> servParams { {"ownIp", "127.0.0.1"}, {"ownPort", "8080"},
-                                                    {"remIp", "127.0.0.1"}, {"remPort", "8081"},
+    std::map<std::string, std::string> servParams { {"ownIp", "127.0.0.1"}, {"ownPort", "5000"},
+                                                    {"remIp", "127.0.0.1"}, {"remPort", "5005"},
                                                     {"block", "1"} };
 
     // Инициализация параметров соединия для клиента
-    std::map<std::string, std::string> cliParams { {"ownIp", "127.0.0.1"}, {"ownPort", "8081"},
-                                                   {"remIp", "127.0.0.1"}, {"remPort", "8080"},
+    std::map<std::string, std::string> cliParams { {"ownIp", "127.0.0.1"}, {"ownPort", "5005"},
+                                                   {"remIp", "127.0.0.1"}, {"remPort", "5000"},
                                                    {"block", "1"} };
 
-    std::cout << "server" << " " << servParams.at("ownIp") << ":" << servParams.at("ownPort") << std::endl;
-    std::cout << "server" << " " << servParams.at("remIp") << ":" << servParams.at("remPort") << std::endl;
-    std::cout << "client" << " " << cliParams.at("ownIp") << ":" << cliParams.at("ownPort") << std::endl;
-    std::cout << "client" << " " << cliParams.at("remIp") << ":" << cliParams.at("remPort") << std::endl;
 
     int messPerS     = 1;   // частота отправки запросов на сервевер (сообщений в секунду)
     int workDuration = 30;  // длительность работы клиента

@@ -115,7 +115,7 @@ public:
      *  успешность отправки данных в удаленный сокет
      */
     virtual bool send( std::string a_remoteIp, std::string a_remotePort,
-                       char *a_data, int *a_sendSize ) = 0;
+                       std::string a_data, int *a_sendSize ) = 0;
 
     /******************************************************************************
      * Закрытие соединения

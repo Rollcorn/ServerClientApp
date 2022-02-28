@@ -78,7 +78,7 @@ bool C_UdpSocket::setup( std::string a_ipParam, std::string a_portParam,
 {
     // Инициализация ip-адреса и порта сокета
     m_ownIpAddr = a_ipParam;
-    m_ownPort   = atoi(a_portParam.c_str());
+    m_ownPort   = (short) std::stoi(a_portParam);
 
     bool setupRes = false;
     bool ret = true;
@@ -159,42 +159,45 @@ bool C_UdpSocket::recv( std::string a_remoteIp, std::string a_remotePort,
                         char *a_data, int *a_recvSize )
 {
     bool recvRes = false;
-    int  dataLen = sizeof(a_data);
-
-    struct sockaddr_in * m_remoteAddr;
     int  slen    = sizeof(*m_remoteAddr);
-
+    int n;
 
     // Инициализация параметров соединения
-
+    ZeroMemory( a_data, sizeof(*a_data) );
     ZeroMemory( m_remoteAddr, slen );
+
     m_remoteAddr->sin_family      = m_ipFamily;
-    m_remoteAddr->sin_port        = htons( atoi(a_remotePort.c_str()) );
+    m_remoteAddr->sin_port        = htons(
+                (u_short)std::stoi(a_remotePort) );
     m_remoteAddr->sin_addr.s_addr = inet_addr( a_remoteIp.c_str() );
 
     // Попытка получения запроса
-    *a_recvSize = recvfrom( m_sockFd, a_data, dataLen, 0,
+    n = recvfrom( m_sockFd, a_data, MAXLINE, 0,
                             (struct sockaddr *)m_remoteAddr, &slen );
-    std::cout << "Get from " << ":" << m_remoteAddr->sin_port << std::endl;
+    a_data[n] = '\0';
+
+    std::cout << this->name() << ": Get from "
+              << ":" << m_remoteAddr->sin_port << " Recv size=" << n
+              << std::endl;
+
     if ( *a_recvSize == SOCKET_ERROR ) {
-        std::cout << ": recvfrom() socket failed with error code : "
+        std::cout << " : recvfrom() socket failed with error code : "
                   << WSAGetLastError() << std::endl;
     }
     else {
         recvRes = true;
+        *a_recvSize = n;
     }
 
     return recvRes;
-
 }
 
 /*****************************************************************************
  * Отправка данных
  */
 bool C_UdpSocket::send( std::string a_remoteIp, std::string a_remotePort,
-                        char *a_data, int *a_sendSize)
+                        std::string a_data, int *a_sendSize )
 {
-
     int     slen        = sizeof(*m_remoteAddr); // Определение размера длины адреса назначения
     bool    sendRes     = false;
     int     a_dataLen   = sizeof(a_data);
@@ -206,7 +209,7 @@ bool C_UdpSocket::send( std::string a_remoteIp, std::string a_remotePort,
     m_remoteAddr->sin_addr.s_addr = inet_addr( a_remoteIp.c_str() );
 
     // Попытка отправки данных
-    *a_sendSize = sendto( m_sockFd,  a_data, a_dataLen, 0,
+    *a_sendSize = sendto( m_sockFd,  a_data.c_str(), a_dataLen, 0,
                           (struct sockaddr *)m_remoteAddr, slen );
     if ( *a_sendSize == SOCKET_ERROR ) {
         std::cout << "sendto() failed with error code : "

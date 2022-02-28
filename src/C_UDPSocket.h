@@ -124,7 +124,7 @@ public:
 
     // Отправка данных
     virtual bool send( std::string a_remoteIp, std::string a_remotePort,
-                       char *a_data, int *a_sendSize );
+                       std::string a_data, int *a_sendSize );
 
     // Закрытие соединеия
     virtual bool close();
@@ -155,7 +155,7 @@ private:
     int m_ipFamily = AF_INET;     // IP протокол соединения
     int m_type     = SOCK_DGRAM;  // тип соединения сокета
     int m_protocol = IPPROTO_UDP; // протокол соединения сокета
-
+    const int MAXLINE = 512;
     /**
      * Параметры соединения
      */
