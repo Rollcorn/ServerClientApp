@@ -67,13 +67,13 @@ bool C_Client::setup( std::map<std::string, std::string> a_conParam )
     m_blocking = atoi( a_conParam.at("block").c_str() );
 
     // Попытка инициализации сокета клиента
-    setupRes = m_socket->setup( m_ownIp, m_ownPort, m_blocking );
+    setupRes = m_socket->setup( m_ownIp, m_ownPort, 1 );
     if (setupRes) {
-        std::cout << m_socket->name() << ": Client Socket creating SUCCESS"
+        std::cout << m_socket->name() << ":\tClient Socket CREATING SUCCESS"
                   << std::endl;
     }
     else {
-        std::cout << m_socket->name() << ": Client Socket crating FAILED."
+        std::cout << m_socket->name() << ":\tClient Socket creating FAILED."
                   << std::endl;
     }
     std::cout << "CLIENT: own-" << m_ownIp << ":" << m_ownPort
@@ -102,21 +102,21 @@ bool C_Client::workingSession( int a_messPerSec, int a_workDuration )
     bool commRes = false;
     bool discRes = false;
 
-    std::cout << m_socket->name() << ": CLIENT COMUNICATION STARTED. " << std::endl;
+    std::cout << m_socket->name() << ":\tCLIENT COMUNICATION STARTED. " << std::endl;
 
     // Попытка запуска сетевого взяимодействия со стороны клиента
     commRes = communication( a_messPerSec, a_workDuration );
     if (commRes) {
-        std::cout << m_socket->name() << ": Client Communication SUCCESS. " << std::endl;
+        std::cout << m_socket->name() << ":\tClient Communication SUCCESS. " << std::endl;
     }
     else {
-        std::cout << m_socket->name() << ": Client Communication FAILED. " << std::endl;
+        std::cout << m_socket->name() << ":\tClient Communication FAILED. " << std::endl;
     }
 
     // Попытка закрытия сокета
     discRes = m_socket->flush();
     if (discRes) {
-        std::cout << m_socket->name() << ": CLIENT SOCK CLOSED SUCCESS. " << std::endl;
+        std::cout << m_socket->name() << ":\tCLIENT SOCK CLOSED SUCCESS. " << std::endl;
     }
 
     return commRes && discRes;
@@ -135,16 +135,19 @@ bool C_Client::workingSession( int a_messPerSec, int a_workDuration )
  *                       запрсов) в секундах.
  *
  * @return
- *  корректность обмена данными с удаленным сокетом
+ * корректность обмена данными с удаленным сокетом
  */
 bool C_Client::communication( int a_messPerSec, int a_workDuration )
 {
-    bool  sendRes = true; // результат отправки данных
-    bool  recvRes = true; // Результат получения данных
+    bool    sendRes = true; // результат отправки данных
+    bool    recvRes = true; // Результат получения данных
 
-    char        buffer[m_BufSize];
+    std::vector<char> buffer;
+    buffer.resize( m_BufSize + 1 );
+
     std::string strMessage = "Give me a number!"; // Запрос клиента
-    int         messageLen = sizeof(int);
+    std::vector<char> message = {strMessage.begin(), strMessage.end()};
+    message.push_back( '\0' );
 
     int   sendSize   = 0; // Размер отправленных данных
     int   recvSize   = 0; // Размер принятых данных
@@ -154,32 +157,29 @@ bool C_Client::communication( int a_messPerSec, int a_workDuration )
     auto end    = std::chrono::steady_clock::now();
     std::chrono::duration<double> curentWorkTime = end - start;
 
-   do {
+    while ( ( curentWorkTime.count() < a_workDuration ) && sendRes && recvRes ) {
 
-        // Очищение буфера
-        ZeroMemory( buffer, m_BufSize );
-
+    
         // Попытка отправки запроса серверу
         sendRes = m_socket->send( m_remIp, m_remPort,
-                                  strMessage, &sendSize );
+                                  message, sendSize );
         if(sendRes){
-            std::cout << m_socket->name() << ": Client Sent message {"
-                      << strMessage << "} size: " << sendSize << std::endl;
+            std::cout << m_socket->name() << ":\tClient Sent message {"
+                      << strMessage[0] << "} size: " << sendSize << std::endl;
         }
         else {
-            std::cout << m_socket->name() << ": BAD Send on Client" << std::endl;
+            std::cout << m_socket->name() << ":\tBAD Send on Client" << std::endl;
         }
 
         // Попытка получения сообщения от сервера
-        recvRes = m_socket->recv( m_remIp, m_remPort, buffer, &recvSize );
+        recvRes = m_socket->recv( m_remIp, m_remPort, buffer, recvSize );
         if(recvRes) {
-            std::cout << m_socket->name() << ": Client Recived message "
-                      << buffer << " size: "
+            std::cout << m_socket->name() << ":\tClient Recived message "
+                      << buffer[0] << " size: "
                       << recvSize << std::endl;
-            std::cout << m_socket->name() << ": Get number: " << static_cast<int>(*buffer) << std::endl;
         }
         else {
-            std::cout << m_socket->name() << ": BAD Reciev on Client" << std::endl;
+            std::cout << m_socket->name() << ":\tBAD Reciev on Client" << std::endl;
         }
 
         Sleep( a_messPerSec * 1000 ); // Выдержка в 1 секнду
@@ -187,9 +187,9 @@ bool C_Client::communication( int a_messPerSec, int a_workDuration )
         // Обновление таймера
         end = std::chrono::steady_clock::now();
         curentWorkTime = end - start;
-    } while ( ( curentWorkTime.count() < a_workDuration ) && sendRes && recvRes );
+    }
 
-    return sendRes && recvSize;
+    return sendRes && recvRes;
 }
 
 /*****************************************************************************

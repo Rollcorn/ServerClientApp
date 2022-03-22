@@ -32,6 +32,7 @@
 #include <thread>
 #include <chrono>
 #include <map>
+#include <vector>
 
 namespace myTask {
 
@@ -97,7 +98,7 @@ public:
      *  корректность полученных от удаленного сокета данных
      */
     virtual bool recv( std::string a_remoteIp, std::string a_remotePort,
-                       char *a_data, int *a_recvSize ) = 0;
+                       std::vector<char> &a_buffer, int &a_recvSize ) = 0;
 
     /*****************************************************************************
      * Отправка данных
@@ -115,7 +116,7 @@ public:
      *  успешность отправки данных в удаленный сокет
      */
     virtual bool send( std::string a_remoteIp, std::string a_remotePort,
-                       std::string a_data, int *a_sendSize ) = 0;
+                       std::vector<char> &a_data, int &a_sendSize ) = 0;
 
     /******************************************************************************
      * Закрытие соединения

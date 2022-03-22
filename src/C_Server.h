@@ -97,7 +97,7 @@ private:
     I_Socket*  m_socket = nullptr;
 
     // Размер буфера сервера
-    const int m_servBufferSize = 1024;
+    const int m_bufferSize = 1024;
 
 };
 

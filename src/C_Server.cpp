@@ -73,24 +73,22 @@ bool C_Server::setup( std::map<std::string, std::string> a_conParam )
 
     m_blocking = std::stoi( a_conParam.at("block") );
 
-    std::cout << " Server setup " << '\n';
-
     // Инициализация сокета клиента
-    setupRes = m_socket->setup( m_ownIp, m_ownPort, m_blocking );
+    setupRes = m_socket->setup( m_ownIp, m_ownPort, 1 );
     if (setupRes) {
-        std::cout << m_socket->name() << ": Server Socket creating SUCCESS " << std::endl;
+        std::cout << m_socket->name() << ":\tServer Socket CREATING SUCCESS." << std::endl;
     }
     else {
-        std::cout << m_socket->name() << ": Socket crating has FAILED." << std::endl;
+        std::cout << m_socket->name() << ":\tServer Socket CREATING FAILED." << std::endl;
     }
 
     // Попытка открытия сокета клиента
     openRes = m_socket->open();
     if (openRes) {
-        std::cout << m_socket->name() << ": Server Socket opening SUCCESS " << std::endl;
+        std::cout << m_socket->name() << ":\tServer Socket OPENING SUCCESS." << std::endl;
     }
     else {
-        std::cout << m_socket->name() << ": Server Socket opening has FAILED." << std::endl;
+        std::cout << m_socket->name() << ":\tServer Socket OPENING FAILED." << std::endl;
     }
 
     std::cout << "SERVER: own-" << m_ownIp << ":" << m_ownPort << " rem-"
@@ -117,14 +115,14 @@ bool C_Server::workingSession()
     bool workRes = false;
     bool flushRes = false;
 
-    std::cout << m_socket->name() << ": SERVER COMUNICATION STARTED.\n";
+    std::cout << m_socket->name() << ":\tSERVER COMUNICATION STARTED.\n";
 
     // Попытка запуска комуникации с сервером
     workRes = communication();
     if( workRes ) {
-        std::cout << m_socket->name() << ": Server Start communacation SUCCESS. " << std::endl;
+        std::cout << m_socket->name() << ":\tServer Start communacation SUCCESS. " << std::endl;
     } else {
-        std::cout << m_socket->name() << ":  Server communacation FAILED. " << std::endl;
+        std::cout << m_socket->name() << ":\tServer communacation FAILED. " << std::endl;
     }
 
     // Попытка закрыть соединение и освободить ресурсы соединения
@@ -148,63 +146,61 @@ bool C_Server::workingSession()
  */
 bool C_Server::communication()
 {
-
     bool recvRes = true;
     bool sendRes = true;
 
     int recvSize = 0;
     int sendSize = 0;
 
-    char buffer[m_servBufferSize]; // Буфер для полученных данных
-
+    std::vector<char> buffer; // Буфер для полученных данных
+    buffer.resize(m_bufferSize + 1);
     std::random_device  rd;
     std::mt19937        gen( rd() );
     int a = -100, b = 100;
     std::uniform_int_distribution<int> dist( a, b );
 
-    do {
+    while ( sendRes && recvRes ) {
         recvRes = false;
         sendRes = false;
 
         // Очищение буфера
-        ZeroMemory( buffer, m_servBufferSize );
+        std::fill( buffer.begin(), buffer.end(), '\0' );
 
-        std::cout << m_socket->name() << ": Server Waiting for data... "
+        std::cout << m_socket->name() << ":\tServer Waiting for data... "
                   << std::endl;
         fflush(stdout);
 
         // Генерируется случайное число
         int num = dist(gen);
-        std::cout << "rand num=" <<  num << std::endl;
 
         // Попытка получения запроса от клиента
-        recvRes = m_socket->recv( m_remIp, m_remPort, buffer, &recvSize );
+        recvRes = m_socket->recv( m_ownIp, m_ownPort, buffer, recvSize );
         if (recvRes) {
-            std::cout << m_socket->name() << ": Server Recived message: {"
-                      << buffer
+            std::cout << m_socket->name() << ":\tServer Recived message: {"
+                      << buffer[0]
                       << "} size: " << recvSize << " " << std::endl;
         }
         else {
-            std::cout << m_socket->name() << ": BAD Reciev on Server "
+            std::cout << m_socket->name() << ":\tBAD Reciev on Server "
                       << std::endl;
         }
 
         std::string message = std::to_string(num);
-        std::cout << "RAND NUM STR " << message << ":" << sizeof(message) << std::endl;
-
-        // Попытка отправки ответа клиенту на его запрос
+        std::vector<char> messageVec;
+        messageVec = {message.begin(), message.end() };
+        messageVec.push_back('\0');
+//      Попытка отправки ответа клиенту на его запрос
         if (recvRes) {
-            sendRes = m_socket->send( m_remIp, m_remPort,
-                                      message, &sendSize );
+            sendRes = m_socket->send( m_remIp, m_remPort, messageVec, sendSize );
         }
         if (sendRes) {
-            std::cout << m_socket->name() << ": Server Sent message {"
+            std::cout << m_socket->name() << ":\tServer Sent message {"
                       << message <<  "} size: " << sendSize << " " << std::endl;
         }
         else {
-            std::cout << m_socket->name() << ": BAD Send on Server " << std::endl;
+            std::cout << m_socket->name() << ":\tBAD Send on Server " << std::endl;
         }
-    } while ( recvRes && sendRes );
+    }
 
     return recvRes && sendRes;
 }
@@ -226,19 +222,19 @@ bool C_Server::flush()
     discRes = m_socket->close();
     if (discRes) {
         std::cout << m_socket->name()
-                  << ": Server Socket diconnected successfully. " << std::endl;
+                  << ":\tServer Socket diconnected successfully. " << std::endl;
     }
     else {
-        std::cout << m_socket->name() << ": BAD Socket diconnect. " << std::endl;
+        std::cout << m_socket->name() << ":\tBAD Socket diconnect. " << std::endl;
     }
 
     // Попытка освобождения ресурсов соединения
     flushRes = m_socket->flush();
     if ( discRes && flushRes ) {
-        std::cout << m_socket->name() << ": SERVER SOCK CLOSED SUCCESS. " << std::endl;
+        std::cout << m_socket->name() << ":\tSERVER SOCK CLOSED SUCCESS. " << std::endl;
     }
     else {
-        std::cout << m_socket->name() << ": BAD Socket closed on Server. " << std::endl;
+        std::cout << m_socket->name() << ":\tBAD Socket closed on Server. " << std::endl;
     }
 
     return discRes && flushRes;

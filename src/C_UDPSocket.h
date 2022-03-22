@@ -120,11 +120,11 @@ public:
 
     // Получение данных
     virtual bool recv( const std::string a_remoteIp, const std::string a_remotePort,
-                       char *a_data, int *a_recvSize );
+                       std::vector<char> &a_data, int &a_recvSize );
 
     // Отправка данных
     virtual bool send( std::string a_remoteIp, std::string a_remotePort,
-                       std::string a_data, int *a_sendSize );
+                       std::vector<char> &a_data, int &a_sendSize );
 
     // Закрытие соединеия
     virtual bool close();
@@ -169,7 +169,7 @@ private:
      * Данные сокета
      */
     WSADATA m_wsadata;                  // Объект библиотеки winsock2
-    int     m_sockFd = INVALID_SOCKET;  // дескриптор сокета
+    SOCKET  m_sockFd = INVALID_SOCKET;  // дескриптор сокета
 
 protected:
     struct T_SockTransProt{

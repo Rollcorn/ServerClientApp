@@ -1,6 +1,9 @@
 **/out
 **/target
 **/.idea
+**/build*
+**/Debug*
+**/Realease*
 
 # Compiled class file
 *.class
