@@ -59,10 +59,10 @@ bool C_Client::setup( std::map<std::string, std::string> a_conParam )
     m_socket = CreateSocket("UDP");
 
     // Инициализация параметров соединения
-    m_ownIp              = a_conParam.at("ownIp");
-    m_ownPort            = a_conParam.at("ownPort");
-    m_remIp              = a_conParam.at("remIp");
-    m_remPort            = a_conParam.at("remPort");
+    m_ownIp     = a_conParam.at("ownIp");
+    m_ownPort   = a_conParam.at("ownPort");
+    m_remIp     = a_conParam.at("remIp");
+    m_remPort   = a_conParam.at("remPort");
 
     m_blocking = atoi( a_conParam.at("block").c_str() );
 

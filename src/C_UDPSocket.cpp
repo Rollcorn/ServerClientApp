@@ -26,8 +26,6 @@ namespace myTask{
  * Конструктор
  */
 C_UdpSocket::C_UdpSocket()
-: m_ownAddr   ( new struct sockaddr_in ),
-  m_remoteAddr( new struct sockaddr_in )
 {
 }
 
@@ -89,11 +87,15 @@ bool C_UdpSocket::setup( std::string a_ipParam, std::string a_portParam,
         std::cout << "FAILED create socket : " << WSAGetLastError() << std::endl;
     }
 
+    if ( m_ownAddr == nullptr ){
+        m_ownAddr = new struct sockaddr_in;
+    }
+
     // Заполнение параметров буфера
     ZeroMemory( m_ownAddr, sizeof( *m_ownAddr ) );
     m_ownAddr->sin_family      = m_ipFamily;
     m_ownAddr->sin_port        = htons(m_ownPort);
-    m_remoteAddr->sin_addr.s_addr = inet_addr( a_ipParam.c_str() );
+    m_ownAddr->sin_addr.s_addr = inet_addr( a_ipParam.c_str() );
 
     // Установка, при необходимости, сокета в неблокирующий режим
     if ( a_optFlag & optNonblock ) {
@@ -153,23 +155,28 @@ bool C_UdpSocket::open()
  * Отправка данных
  */
 bool C_UdpSocket::send( std::string a_remoteIp, std::string a_remotePort,
-                        std::vector<char> a_data, int &a_sendSize )
+                        std::vector<char> &a_data, int &a_sendSize )
 {
-    int     tolen    = sizeof(*m_remoteAddr); // Определение размера длины адреса назначения
+
+    if ( m_remoteAddr == nullptr ){
+    }
+    struct sockaddr_in remoteAddr;
+
     bool    sendRes = false;
+    int tolen = sizeof(remoteAddr); // Определение размера длины адреса назначения
 
     // Инициализация параметров соединения
-    ZeroMemory( m_remoteAddr, sizeof( *m_remoteAddr ) );
-    m_remoteAddr->sin_family      = m_ipFamily;
-    m_remoteAddr->sin_port        = htons( (u_short)std::stoi(a_remotePort) );
-    m_remoteAddr->sin_addr.s_addr = inet_addr( a_remoteIp.c_str() );
-//inet_addr( a_remoteIp.c_str() )
+    ZeroMemory( &remoteAddr, sizeof( remoteAddr ) );
+    remoteAddr.sin_family      = m_ipFamily;
+    remoteAddr.sin_port        = htons( (u_short)std::stoi(a_remotePort) );
+    remoteAddr.sin_addr.s_addr = inet_addr( a_remoteIp.c_str() );
+    //inet_addr( a_remoteIp.c_str() )
 
 
     // Попытка отправки данных
-    *a_sendSize = sendto( m_sockFd, a_data[0], strlen(a_data.c_str()), 0,
-                          (struct sockaddr *)m_remoteAddr, tolen );
-    if ( *a_sendSize == SOCKET_ERROR ) {
+    a_sendSize = sendto( m_sockFd, &a_data[0], a_data.size() + 1, 0,
+                          (struct sockaddr *)&remoteAddr, tolen );
+    if ( a_sendSize == SOCKET_ERROR ) {
         std::cout << "sendto() failed with error code : "
                   << WSAGetLastError() << std::endl;
     }
@@ -188,35 +195,34 @@ bool C_UdpSocket::recv( std::string a_remoteIp, std::string a_remotePort,
                         std::vector<char> &a_buff, int &a_recvSize )
 {
     bool    recvRes = false;
-    int     fromlen = sizeof(*m_remoteAddr);
     int n;
-
-    // Инициализация параметров соединения
-    std::fill( a_buff.begin(), a_buff.end(), '\0' );
+    m_remoteAddr = new struct sockaddr_in ;
+    int     fromlen = sizeof(remoteAddr);
 
     // Очистка струтуры адреса
-    memset( m_remoteAddr, 0, sizeof(*m_remoteAddr) );
-
+    memset( &remoteAddr, 0, sizeof(remoteAddr) );
+    // Инициализация параметров соединения
+    std::fill( a_buff.begin(), a_buff.end(), '\0' );
 //    m_remoteAddr->sin_family      = m_ipFamily;
 //    m_remoteAddr->sin_port        = htons( (u_short)std::stoi(a_remotePort) );
 //    m_remoteAddr->sin_addr.s_addr = inet_addr( a_remoteIp.c_str() );
 
     // Попытка получения запроса
     n = recvfrom( m_sockFd, &a_buff[0], a_buff.size(), 0,
-                            (sockaddr *)m_remoteAddr, &fromlen);
+                            (sockaddr *)&remoteAddr, &fromlen);
 //    a_buff[n] = '\0';
 
     std::cout << this->name() << ": Get from "
-              << ":" << m_remoteAddr->sin_port << " MESS {" << a_buff[0] << "} Recv size="
+              << ":" << m_remoteAddr->sin_port << " MESS {" << "a_buff" << "} Recv size="
               << n << " fromlen=" << sizeof(a_buff) << std::endl;
 
     // Проверка коректности адреса клиента
-    if ( inet_addr( a_remoteIp.c_str()) != m_remoteAddr->sin_addr.s_addr ){
+    if ( inet_addr( a_remoteIp.c_str()) != remoteAddr.sin_addr.s_addr ){
         std::cout << "WRONG_IP: " << inet_addr( a_remoteIp.c_str()) <<
-                  ": " << m_remoteAddr->sin_addr.s_addr << std::endl;
+                  ": " << remoteAddr.sin_addr.s_addr << std::endl;
     }
 
-    if ( htons( (u_short)std::stoi(a_remotePort) ) != m_remoteAddr->sin_port ){
+    if ( htons( (u_short)std::stoi(a_remotePort) ) != remoteAddr.sin_port ){
         std::cout << "WRONG_PORT" << std::endl;
     }
 

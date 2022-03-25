@@ -162,8 +162,8 @@ private:
     std::string         m_ownIpAddr; // IP адресс сервера
     short               m_ownPort;   // Порт сервера
 
-    struct sockaddr_in *m_ownAddr;    // структура адреса собственного сокета IPv4
-    struct sockaddr_in *m_remoteAddr; // структура адреса удаленного сокета IPv4
+    struct sockaddr_in *m_ownAddr    = nullptr;  // структура адреса собственного сокета IPv4
+    struct sockaddr_in *m_remoteAddr = nullptr;  // структура адреса удаленного сокета IPv4
 
     /**
      * Данные сокета
