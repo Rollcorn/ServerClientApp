@@ -87,6 +87,7 @@
 #include <iphlpapi.h>
 
 #include "I_Socket.h"
+#include "config.h"
 
 namespace myTask {
 
@@ -112,19 +113,16 @@ public:
     virtual ~C_UdpSocket();
 
     // Запуск сокета
-    virtual bool setup( std::string a_ipParam, std::string a_portParam,
-                        int a_optFlag );
+    virtual bool setup( ConnectionParams a_conParam, int a_optFlag );
 
     // Cвязывание сокет с локальным адресом протокола
     virtual bool open();
 
     // Получение данных
-    virtual bool recv( const std::string a_remoteIp, const std::string a_remotePort,
-                       std::vector<char> &a_data, int &a_recvSize );
+    virtual bool recv( std::vector<char> &a_buffer, std::string &a_from );
 
     // Отправка данных
-    virtual bool send( std::string a_remoteIp, std::string a_remotePort,
-                       std::vector<char> &a_data, int &a_sendSize );
+    virtual bool send( const std::vector<char> &a_data, const std::string &a_to );
 
     // Закрытие соединеия
     virtual bool close();
@@ -134,12 +132,6 @@ public:
 
     // Имя сокета (ip - port)
     virtual std::string name();
-
-    // Cтруктура адреса собственного сокета
-    virtual sockaddr_in * ownSockAdr();
-
-    // Получение адреса удаленного сокета
-    virtual sockaddr_in * remoteSockAdr();
 
 private:
 
@@ -162,8 +154,8 @@ private:
     std::string         m_ownIpAddr; // IP адресс сервера
     short               m_ownPort;   // Порт сервера
 
-    struct sockaddr_in *m_ownAddr    = nullptr;  // структура адреса собственного сокета IPv4
-    struct sockaddr_in *m_remoteAddr = nullptr;  // структура адреса удаленного сокета IPv4
+    struct sockaddr_in m_ownAddr    ;  // структура адреса собственного сокета IPv4
+    struct sockaddr_in m_remoteAddr ;  // структура адреса удаленного сокета IPv4
 
     /**
      * Данные сокета

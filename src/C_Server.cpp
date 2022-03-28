@@ -152,8 +152,8 @@ bool C_Server::communication()
     int recvSize = 0;
     int sendSize = 0;
 
-    std::vector<char> buffer; // Буфер для полученных данных
-    buffer.resize(m_bufferSize + 1);
+    std::vector<char> buffer(m_bufferSize); // Буфер для полученных данных
+
     std::random_device  rd;
     std::mt19937        gen( rd() );
     int a = -100, b = 100;
@@ -170,14 +170,11 @@ bool C_Server::communication()
                   << std::endl;
         fflush(stdout);
 
-        // Генерируется случайное число
-        int num = dist(gen);
-
         // Попытка получения запроса от клиента
         recvRes = m_socket->recv( m_ownIp, m_ownPort, buffer, recvSize );
         if (recvRes) {
             std::cout << m_socket->name() << ":\tServer Recived message: {"
-                      << buffer[0]
+                      << buffer.data()
                       << "} size: " << recvSize << " " << std::endl;
         }
         else {
@@ -185,17 +182,21 @@ bool C_Server::communication()
                       << std::endl;
         }
 
+        // Генерируется случайное число
+        int num = dist(gen);
+
         std::string message = std::to_string(num);
-        std::vector<char> messageVec;
-        messageVec = {message.begin(), message.end() };
+        std::vector<char> messageVec = {message.begin(), message.end() };
         messageVec.push_back('\0');
+        messageVec.resize(message.size() + 1);
 //      Попытка отправки ответа клиенту на его запрос
         if (recvRes) {
             sendRes = m_socket->send( m_remIp, m_remPort, messageVec, sendSize );
         }
         if (sendRes) {
             std::cout << m_socket->name() << ":\tServer Sent message {"
-                      << message <<  "} size: " << sendSize << " " << std::endl;
+                      << messageVec.data() <<  "} Send size: " << sendSize << " "
+                      << std::endl;
         }
         else {
             std::cout << m_socket->name() << ":\tBAD Send on Server " << std::endl;

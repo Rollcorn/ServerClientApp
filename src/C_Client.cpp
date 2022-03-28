@@ -142,12 +142,12 @@ bool C_Client::communication( int a_messPerSec, int a_workDuration )
     bool    sendRes = true; // результат отправки данных
     bool    recvRes = true; // Результат получения данных
 
-    std::vector<char> buffer;
-    buffer.resize( m_BufSize + 1 );
+    std::vector<char> buffer( m_BufSize );
 
     std::string strMessage = "Give me a number!"; // Запрос клиента
     std::vector<char> message = {strMessage.begin(), strMessage.end()};
     message.push_back( '\0' );
+    message.resize(strMessage.length() + 1);
 
     int   sendSize   = 0; // Размер отправленных данных
     int   recvSize   = 0; // Размер принятых данных
@@ -157,25 +157,28 @@ bool C_Client::communication( int a_messPerSec, int a_workDuration )
     auto end    = std::chrono::steady_clock::now();
     std::chrono::duration<double> curentWorkTime = end - start;
 
-    while ( ( curentWorkTime.count() < a_workDuration ) && sendRes && recvRes ) {
-
-    
+    while ( ( curentWorkTime.count() < a_workDuration ) )
+    {
         // Попытка отправки запроса серверу
         sendRes = m_socket->send( m_remIp, m_remPort,
                                   message, sendSize );
         if(sendRes){
             std::cout << m_socket->name() << ":\tClient Sent message {"
-                      << strMessage[0] << "} size: " << sendSize << std::endl;
+                      << message.data() << "} size: " << sendSize << std::endl;
         }
         else {
             std::cout << m_socket->name() << ":\tBAD Send on Client" << std::endl;
         }
 
         // Попытка получения сообщения от сервера
+
+        // Очищение буфера
+        std::fill( buffer.begin(), buffer.end(), '\0' );
+
         recvRes = m_socket->recv( m_remIp, m_remPort, buffer, recvSize );
         if(recvRes) {
             std::cout << m_socket->name() << ":\tClient Recived message "
-                      << buffer[0] << " size: "
+                      << buffer.data() << " size: "
                       << recvSize << std::endl;
         }
         else {
@@ -187,6 +190,7 @@ bool C_Client::communication( int a_messPerSec, int a_workDuration )
         // Обновление таймера
         end = std::chrono::steady_clock::now();
         curentWorkTime = end - start;
+
     }
 
     return sendRes && recvRes;

@@ -17,6 +17,7 @@
 
 #include "C_Server.h"
 #include "C_Client.h"
+#include "config.h"
 
 
 /*****************************************************************************
@@ -50,15 +51,16 @@
 
 int main()
 {
+
     // Инициализация параметров соединия для сервера
-    std::map<std::string, std::string> servParams { {"ownIp", "127.0.0.1"}, {"ownPort", "5000"},
-                                                    {"remIp", "127.0.0.1"}, {"remPort", "5005"},
-                                                    {"block", "1"} };
+    ConnectionParams servParams { {"ownIp", "127.0.0.1"}, {"ownPort", "5000"},
+                                  {"remIp", "127.0.0.1"}, {"remPort", "5005"},
+                                  {"block", "1"} };
 
     // Инициализация параметров соединия для клиента
-    std::map<std::string, std::string> cliParams { {"ownIp", "127.0.0.1"}, {"ownPort", "5005"},
-                                                   {"remIp", "127.0.0.1"}, {"remPort", "5000"},
-                                                   {"block", "1"} };
+    ConnectionParams cliParams { {"ownIp", "127.0.0.1"}, {"ownPort", "5005"},
+                                 {"remIp", "127.0.0.1"}, {"remPort", "5000"},
+                                 {"block", "1"} };
 
 
     int messPerS     = 1;   // частота отправки запросов на сервевер (сообщений в секунду)
@@ -66,13 +68,15 @@ int main()
 
     myTask::C_Server myServer;
     myTask::C_Client myClient;
+    bool isServerSetup = myServer.setup(servParams);
+    bool isClientSetup = myClient.setup(cliParams);
 
-    std::thread server_thread( [&]{ if ( myServer.setup(servParams) ){
+    std::thread server_thread( [&]{ if ( isServerSetup ){
                                          myServer.workingSession();
                                     } else { std::cout << "Server Setup ERROR!\n"; }
                                   } );
 
-    std::thread client_thread( [&]{ if ( myClient.setup(cliParams) ){
+    std::thread client_thread( [&]{ if ( isClientSetup ){
                                          myClient.workingSession(messPerS, workDuration);
                                     } else { std::cout << "Client Setup ERROR!\n"; }
                                   } );
