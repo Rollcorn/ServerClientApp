@@ -113,7 +113,7 @@ public:
     virtual ~C_UdpSocket();
 
     // Запуск сокета
-    virtual bool setup( ConnectionParams a_conParam, int a_optFlag );
+    virtual bool setup( ConnectionParams a_conParam );
 
     // Cвязывание сокет с локальным адресом протокола
     virtual bool open();
@@ -133,6 +133,8 @@ public:
     // Имя сокета (ip - port)
     virtual std::string name();
 
+    // Адрес удаленного сокета
+    std::string remoteAddr();
 private:
 
     // Инициализация библиотеки WinSock2
@@ -144,24 +146,27 @@ private:
     /**
      * Параметры протокола
      */
-    int m_ipFamily = AF_INET;     // IP протокол соединения
-    int m_type     = SOCK_DGRAM;  // тип соединения сокета
-    int m_protocol = IPPROTO_UDP; // протокол соединения сокета
+    int m_ipFamily = AF_INET;       // IP протокол соединения
+    int m_type     = SOCK_DGRAM;    // тип соединения сокета
+    int m_protocol = IPPROTO_UDP;   // протокол соединения сокета
     const int MAXLINE = 512;
+
     /**
      * Параметры соединения
      */
-    std::string         m_ownIpAddr; // IP адресс сервера
-    short               m_ownPort;   // Порт сервера
-
-    struct sockaddr_in m_ownAddr    ;  // структура адреса собственного сокета IPv4
-    struct sockaddr_in m_remoteAddr ;  // структура адреса удаленного сокета IPv4
+    std::string m_ownIp;        // собственный IP адресс
+    short       m_ownPort;      // собственный Порт
+    std::string m_remIp;        // IP адресс удаленного сокета
+    short       m_remPort;      // Порт удаленного сокета
+    bool        m_isBlocking;   // Статус блокироки потока сокета
 
     /**
      * Данные сокета
      */
     WSADATA m_wsadata;                  // Объект библиотеки winsock2
     SOCKET  m_sockFd = INVALID_SOCKET;  // дескриптор сокета
+    struct sockaddr_in m_ownAddr;       // структура адреса собственного сокета IPv4
+    struct sockaddr_in m_remoteAddr;    // структура адреса удаленного сокета IPv4
 
 protected:
     struct T_SockTransProt{

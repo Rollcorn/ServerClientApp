@@ -74,7 +74,7 @@ bool C_Server::setup( std::map<std::string, std::string> a_conParam )
     m_blocking = std::stoi( a_conParam.at("block") );
 
     // Инициализация сокета клиента
-    setupRes = m_socket->setup( m_ownIp, m_ownPort, 1 );
+    setupRes = m_socket->setup( a_conParam );
     if (setupRes) {
         std::cout << m_socket->name() << ":\tServer Socket CREATING SUCCESS." << std::endl;
     }
@@ -90,9 +90,6 @@ bool C_Server::setup( std::map<std::string, std::string> a_conParam )
     else {
         std::cout << m_socket->name() << ":\tServer Socket OPENING FAILED." << std::endl;
     }
-
-    std::cout << "SERVER: own-" << m_ownIp << ":" << m_ownPort << " rem-"
-              << m_remIp << ":" << m_remPort << std::endl;
 
     return setupRes && openRes;
 }
@@ -159,7 +156,7 @@ bool C_Server::communication()
     int a = -100, b = 100;
     std::uniform_int_distribution<int> dist( a, b );
 
-    while ( sendRes && recvRes ) {
+    while (true ) {
         recvRes = false;
         sendRes = false;
 
@@ -170,32 +167,36 @@ bool C_Server::communication()
                   << std::endl;
         fflush(stdout);
 
+        std::string fromAddr;
         // Попытка получения запроса от клиента
-        recvRes = m_socket->recv( m_ownIp, m_ownPort, buffer, recvSize );
+        recv( buffer, fromAddr );
         if (recvRes) {
             std::cout << m_socket->name() << ":\tServer Recived message: {"
-                      << buffer.data()
-                      << "} size: " << recvSize << " " << std::endl;
+                      << buffer.data() << "} size: " << buffer.size()
+                      << " from " << fromAddr << std::endl;
         }
         else {
-            std::cout << m_socket->name() << ":\tBAD Reciev on Server "
+            std::cout << m_socket->name() << ":\tBAD Recieve on Server. Buffer size: "
+                      << buffer.size() << " From address: " << fromAddr
                       << std::endl;
         }
 
         // Генерируется случайное число
         int num = dist(gen);
 
-        std::string message = std::to_string(num);
-        std::vector<char> messageVec = {message.begin(), message.end() };
+        // Подготовка сообщения
+        std::string messageStr = std::to_string(num);
+        std::vector<char> messageVec = {messageStr.begin(), messageStr.end() };
         messageVec.push_back('\0');
-        messageVec.resize(message.size() + 1);
+        messageVec.resize(messageStr.size() + 1);
+
 //      Попытка отправки ответа клиенту на его запрос
         if (recvRes) {
-            sendRes = m_socket->send( m_remIp, m_remPort, messageVec, sendSize );
+            sendRes = m_socket->send( messageVec, fromAddr );
         }
         if (sendRes) {
             std::cout << m_socket->name() << ":\tServer Sent message {"
-                      << messageVec.data() <<  "} Send size: " << sendSize << " "
+                      << messageVec.data() <<  "} Send size: " << messageVec.size() << " "
                       << std::endl;
         }
         else {
@@ -239,6 +240,28 @@ bool C_Server::flush()
     }
 
     return discRes && flushRes;
+}
+
+bool C_Server::recv(std::vector<char> &buffer, std::string &fromAddr)
+{
+    bool recvRes = true;
+
+    // Попытка получения запроса от клиента
+    do {
+    recvRes = m_socket->recv( buffer, fromAddr );
+    } while( !recvRes && buffer.size() <= 0 );
+
+    if (recvRes) {
+        std::cout << m_socket->name() << ":\tServer Recived message: {"
+                  << buffer.data() << "} size: " << buffer.size()
+                  << " from " << fromAddr << std::endl;
+    }
+    else {
+        std::cout << m_socket->name() << ":\tBAD Recieve on Server. Buffer size: "
+                  << buffer.size() << " From address: " << fromAddr
+                  << std::endl;
+    }
+    return recvRes;
 }
 
 /*****************************************************************************

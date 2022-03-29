@@ -26,8 +26,7 @@ namespace myTask {
  * Конструктор
  */
 C_Client::C_Client()
-{
-}
+{}
 
 /************************************************************************
  * Деструктор
@@ -51,23 +50,17 @@ C_Client::~C_Client()
  * @return
  *  успешность создания сокета.
  */
-bool C_Client::setup( std::map<std::string, std::string> a_conParam )
+bool C_Client::setup( ConnectionParams a_conParam )
 {
     bool setupRes = false; // Результат запуска сокета
 
     // Инстанцируем необходимый  сокет
     m_socket = CreateSocket("UDP");
 
-    // Инициализация параметров соединения
-    m_ownIp     = a_conParam.at("ownIp");
-    m_ownPort   = a_conParam.at("ownPort");
-    m_remIp     = a_conParam.at("remIp");
-    m_remPort   = a_conParam.at("remPort");
-
     m_blocking = atoi( a_conParam.at("block").c_str() );
 
     // Попытка инициализации сокета клиента
-    setupRes = m_socket->setup( m_ownIp, m_ownPort, 1 );
+    setupRes = m_socket->setup( a_conParam );
     if (setupRes) {
         std::cout << m_socket->name() << ":\tClient Socket CREATING SUCCESS"
                   << std::endl;
@@ -76,8 +69,6 @@ bool C_Client::setup( std::map<std::string, std::string> a_conParam )
         std::cout << m_socket->name() << ":\tClient Socket creating FAILED."
                   << std::endl;
     }
-    std::cout << "CLIENT: own-" << m_ownIp << ":" << m_ownPort
-              << " rem-" << m_remIp << ":" << m_remPort << std::endl;
 
     return setupRes;
 }
@@ -122,6 +113,25 @@ bool C_Client::workingSession( int a_messPerSec, int a_workDuration )
     return commRes && discRes;
 }
 
+bool C_Client::send( std::string strMessage )
+{
+    bool sendRes = true; // результат отправки данных
+
+    std::vector<char> message = {strMessage.begin(), strMessage.end()};
+    message.push_back( '\0' );
+    message.resize(strMessage.length() );
+
+    sendRes = m_socket->send( message, m_socket->remoteAddr());
+    if(sendRes){
+        std::cout << m_socket->name() << ":\tClient Sent message {"
+                  << message.data() << "} size: " << message.size() << std::endl;
+    }
+    else {
+        std::cout << m_socket->name() << ":\tBAD Send on Client" << std::endl;
+    }
+    return sendRes;
+}
+
 /*****************************************************************************
  * Обмен данными с клиентом
  *
@@ -142,44 +152,47 @@ bool C_Client::communication( int a_messPerSec, int a_workDuration )
     bool    sendRes = true; // результат отправки данных
     bool    recvRes = true; // Результат получения данных
 
-    std::vector<char> buffer( m_BufSize );
+    std::vector<char> buffer( m_BufSize );  // Буфер для полученных данных
 
-    std::string strMessage = "Give me a number!"; // Запрос клиента
-    std::vector<char> message = {strMessage.begin(), strMessage.end()};
-    message.push_back( '\0' );
-    message.resize(strMessage.length() + 1);
+    std::string strMessage = "Give me a number!";   // Запрос клиента
 
-    int   sendSize   = 0; // Размер отправленных данных
-    int   recvSize   = 0; // Размер принятых данных
+    int   sendSize  = 0;    // Размер отправленных данных
+    int   recvSize  = 0;    // Размер принятых данных
 
     // Объявление таймера работы клиента
     auto start  = std::chrono::steady_clock::now();
     auto end    = std::chrono::steady_clock::now();
     std::chrono::duration<double> curentWorkTime = end - start;
 
+    auto lastSendTime  = std::chrono::steady_clock::now();
+
     while ( ( curentWorkTime.count() < a_workDuration ) )
     {
+        auto currTime = std::chrono::steady_clock::now();
+
         // Попытка отправки запроса серверу
-        sendRes = m_socket->send( m_remIp, m_remPort,
-                                  message, sendSize );
-        if(sendRes){
-            std::cout << m_socket->name() << ":\tClient Sent message {"
-                      << message.data() << "} size: " << sendSize << std::endl;
-        }
-        else {
-            std::cout << m_socket->name() << ":\tBAD Send on Client" << std::endl;
+        if( currTime - lastSendTime  >= std::chrono::milliseconds(5000) ){
+            sendRes = send(strMessage);
+            lastSendTime  = std::chrono::steady_clock::now();
+        } else {
+            end = std::chrono::steady_clock::now();
+            curentWorkTime = end - start;
+            continue;
         }
 
+
         // Попытка получения сообщения от сервера
+
 
         // Очищение буфера
         std::fill( buffer.begin(), buffer.end(), '\0' );
 
-        recvRes = m_socket->recv( m_remIp, m_remPort, buffer, recvSize );
+        std::string fromAddr;
+        recvRes = m_socket->recv( buffer, fromAddr );
         if(recvRes) {
             std::cout << m_socket->name() << ":\tClient Recived message "
                       << buffer.data() << " size: "
-                      << recvSize << std::endl;
+                      << recvSize << " from " << fromAddr << std::endl;
         }
         else {
             std::cout << m_socket->name() << ":\tBAD Reciev on Client" << std::endl;

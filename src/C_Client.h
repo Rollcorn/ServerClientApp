@@ -48,7 +48,7 @@
 #include "I_Socket.h"
 #include "SocketCreator.h"
 #include "C_UdpSocket.h"
-
+#include "config.h"
 
 namespace myTask {
 
@@ -73,7 +73,7 @@ public:
     ~C_Client();
 
     // Создание/запуск сокета клиента
-    bool setup( std::map<std::string, std::string> a_conParam);
+    bool setup( ConnectionParams a_conParam);
 
     // Работа клиента
     bool workingSession( int a_messPerSec, int a_workDuration );
@@ -82,6 +82,8 @@ public:
     bool flush();
 
 private:
+
+    bool send( std::string message );
 
     std::string m_ownIp;
     std::string m_ownPort;

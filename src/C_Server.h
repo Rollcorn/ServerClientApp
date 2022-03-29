@@ -82,6 +82,7 @@ public:
     bool flush();
 
 private:
+    bool recv( std::vector<char> &buffer, std::string &fromAddr );
 
     std::string m_ownIp;
     std::string m_ownPort;

@@ -65,11 +65,14 @@ bool C_UdpSocket::initWinsock()
 /*****************************************************************************
  * Создание сокета
  */
-bool C_UdpSocket::setup( ConnectionParams a_conParam, int a_optFlag )
+bool C_UdpSocket::setup( ConnectionParams a_conParam )
 {
-    // Инициализация ip-адреса и порта сокета
-    m_ownIpAddr = a_conParam. a_ipParam;
-    m_ownPort   = (short) std::stoi(a_portParam);
+    // Инициализация параметров соединения
+    m_ownIp     = a_conParam.at("ownIp");
+    m_ownPort   = (short) std::stoi( a_conParam.at("ownPort") );
+    m_remIp     = a_conParam.at("remIp");
+    m_remPort   = (short) std::stoi( a_conParam.at("remPort") );
+    m_isBlocking =(bool) std::stoi( a_conParam.at("block") );
 
     bool setupRes = true;
     bool ret = true;
@@ -77,7 +80,7 @@ bool C_UdpSocket::setup( ConnectionParams a_conParam, int a_optFlag )
     //Попытка иницициализации библеотеки Winsock2
     ret = initWinsock();
 
-    // Попытка запуска сокета на переданных ip-адресе и порту
+    // Попытка запуска сокета
     m_sockFd = socket( m_ipFamily , m_type, m_protocol );
     if ( m_sockFd == INVALID_SOCKET ) {
         setupRes = false;
@@ -88,10 +91,10 @@ bool C_UdpSocket::setup( ConnectionParams a_conParam, int a_optFlag )
     ZeroMemory( &m_ownAddr, sizeof( m_ownAddr ) );
     m_ownAddr.sin_family      = m_ipFamily;
     m_ownAddr.sin_port        = htons(m_ownPort);
-    m_ownAddr.sin_addr.s_addr = inet_addr( a_ipParam.c_str() );
+    m_ownAddr.sin_addr.s_addr = inet_addr( m_ownIp.c_str() );
 
     // Установка, при необходимости, сокета в неблокирующий режим
-    if ( a_optFlag & optNonblock ) {
+    if ( m_isBlocking & optNonblock ) {
         setNonblock();
     }
 
@@ -152,26 +155,30 @@ bool C_UdpSocket::send( const std::vector<char> &a_data, const std::string &a_to
 
     bool    sendRes = false;
     socklen_t tolen = sizeof(m_remoteAddr); // Определение размера длины адреса назначения
-    int sepIndex = 0;
 
-    while( sepIndex < a_to && a_to[sepIndex] != ":" ){
+    int sepIndex = 0;
+    while( (sepIndex < a_to.length()) && (a_to.c_str()[sepIndex] != ':') ){
         ++sepIndex;
     }
+
+    std::string remoteIp = a_to.substr(0, sepIndex);
+    std::string remotePort = a_to.substr(sepIndex + 1, a_to.length() );
+    std::cout <<  "SEND remoteIp [" << remoteIp << "]" << std::endl;
+    std::cout <<  "SEND remotePort [" << remotePort << "]" << std::endl;
 
     // Инициализация параметров соединения
     ZeroMemory( &m_remoteAddr, sizeof( m_remoteAddr ) );
     m_remoteAddr.sin_family      = m_ipFamily;
-    m_remoteAddr.sin_port        = htons( (u_short)std::stoi(a_remotePort) );
-    m_remoteAddr.sin_addr.s_addr = inet_addr( a_remoteIp.c_str() );
-    //inet_addr( a_remoteIp.c_str() )
+    m_remoteAddr.sin_port        = htons( (short)std::stoi(remotePort) );
+    m_remoteAddr.sin_addr.s_addr = inet_addr( remoteIp.c_str() );
 
-
+    int sendSize = -1;
     // Попытка отправки данных
-    a_sendSize = sendto( m_sockFd, a_data.data(), a_data.size(), 0,
+    sendSize = sendto( m_sockFd, a_data.data(), a_data.size(), 0,
                           (struct sockaddr *)&m_remoteAddr, tolen );
 
-    if ( a_sendSize == SOCKET_ERROR ) {
-        std::cout << "sendto() failed with error code : "
+    if ( sendSize == SOCKET_ERROR ) {
+        std::cout << name() <<":\tsendto() failed with error code : "
                   << WSAGetLastError() << std::endl;
     }
     else {
@@ -191,12 +198,9 @@ bool C_UdpSocket::recv( std::vector<char> &a_buffer, std::string &a_from )
     socklen_t   fromlen = sizeof(m_remoteAddr);
     int recvSize = 0;
 
-    std::string remoteIp = a_from.substr(0, sepIndex );
-    std::string remotePort = a_from.substr(sepIndex + 1, a_from.length() );
-
     // Очистка струтуры адреса
-    memset( &m_remoteAddr, 0, sizeof(m_remoteAddr) );
-//    ZeroMemory( m_remoteAddr, sizeof( *m_remoteAddr ) );
+//    memset( &m_remoteAddr, 0, sizeof(m_remoteAddr) );
+    ZeroMemory( &m_remoteAddr, sizeof( m_remoteAddr ) );
 
     a_buffer.resize(MAXLINE);
     std::fill( a_buffer.begin(), a_buffer.end(), '\0' );
@@ -204,32 +208,23 @@ bool C_UdpSocket::recv( std::vector<char> &a_buffer, std::string &a_from )
     // Попытка получения запроса
     recvSize = recvfrom( m_sockFd, a_buffer.data(), a_buffer.size(), 0,
                             (sockaddr *)&m_remoteAddr, &fromlen);
-
-
     if ( recvSize == SOCKET_ERROR ) {
-        std::cout << " : recvfrom() socket failed with error code : "
+        std::cout << name() <<":\trecvfrom() socket failed with error code : "
                   << WSAGetLastError() << std::endl;
     }
     else {
+        a_buffer.resize(recvSize);
+        a_buffer.push_back('\0');
         recvRes = true;
     }
-    a_buffer.resize(recvSize+1);
-    a_buffer.push_back('\0');
 
-    std::cout << this->name() << ":\tRecieve from "
-              << ":" << m_remoteAddr.sin_port << " MESS {" << a_buffer.data()
+    std::string remoteIp    = inet_ntoa( m_remoteAddr.sin_addr);
+    std::string remotePort  = std::to_string( ntohs(m_remoteAddr.sin_port) );
+    a_from = remoteIp + ":" + remotePort;
+
+    std::cout << name() << ":\tRecieve from: " << a_from << " message {" << a_buffer.data()
               << "} Recv size="
-              << recvSize << std::endl;
-
-    // Проверка коректности адреса клиента
-    if ( inet_addr( remoteIp.c_str()) != m_remoteAddr.sin_addr.s_addr ){
-        std::cout << "WRONG_IP: " << inet_addr( remoteIp.c_str()) <<
-                  ": " << m_remoteAddr.sin_addr.s_addr << std::endl;
-    }
-
-    if ( htons( (u_short)std::stoi(remotePort) ) != m_remoteAddr.sin_port ){
-        std::cout << "WRONG_PORT" << std::endl;
-    }
+              << a_buffer.size() << std::endl;
 
     return recvRes;
 }
@@ -260,9 +255,19 @@ bool C_UdpSocket::flush()
  */
 std::string C_UdpSocket::name()
 {
-    return  m_ownIpAddr + ":" + std::to_string(m_ownPort);
+    return  m_ownIp + ":" + std::to_string(m_ownPort);
 }
 
+/***************************************************************************
+ * Имя удаленного сокета
+ *
+ * @return
+ *  имя сокета в формате <ip-адрес>:<порт>
+ */
+std::string C_UdpSocket::remoteAddr()
+{
+    return  m_remIp + ":" + std::to_string(m_remPort);
+}
 
 /*****************************************************************************
   Functions Prototypes

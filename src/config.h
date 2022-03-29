@@ -1,3 +1,3 @@
 #pragma once
 
-using std::map<std::string, std::string>::mymap;
+using ConnectionParams = std::map<std::string, std::string>;
