@@ -169,29 +169,31 @@ bool C_Server::communication()
 
         std::string fromAddr;
         // Попытка получения запроса от клиента
-        recv( buffer, fromAddr );
+        recvRes = recv( buffer, fromAddr );
         if (recvRes) {
             std::cout << m_socket->name() << ":\tServer Recived message: {"
                       << buffer.data() << "} size: " << buffer.size()
                       << " from " << fromAddr << std::endl;
         }
-        else {
-            std::cout << m_socket->name() << ":\tBAD Recieve on Server. Buffer size: "
-                      << buffer.size() << " From address: " << fromAddr
-                      << std::endl;
-        }
+//        else {
+//            std::cout << m_socket->name() << ":\tBAD Recieve on Server. Buffer size: "
+//                      << buffer.size() << " From address: " << fromAddr
+//                      << std::endl;
+//        }
 
-        // Генерируется случайное число
-        int num = dist(gen);
 
-        // Подготовка сообщения
-        std::string messageStr = std::to_string(num);
-        std::vector<char> messageVec = {messageStr.begin(), messageStr.end() };
-        messageVec.push_back('\0');
-        messageVec.resize(messageStr.size() + 1);
-
+        std::vector<char> messageVec;
 //      Попытка отправки ответа клиенту на его запрос
         if (recvRes) {
+            // Генерируется случайное число
+            int num = dist(gen);
+
+            // Подготовка сообщения
+            std::string messageStr = std::to_string(num);
+            messageVec = {messageStr.begin(), messageStr.end() };
+            messageVec.push_back('\0');
+            messageVec.resize(messageStr.size() + 1);
+
             sendRes = m_socket->send( messageVec, fromAddr );
         }
         if (sendRes) {
@@ -199,9 +201,9 @@ bool C_Server::communication()
                       << messageVec.data() <<  "} Send size: " << messageVec.size() << " "
                       << std::endl;
         }
-        else {
-            std::cout << m_socket->name() << ":\tBAD Send on Server " << std::endl;
-        }
+//        else {
+//            std::cout << m_socket->name() << ":\tBAD Send on Server " << std::endl;
+//        }
     }
 
     return recvRes && sendRes;

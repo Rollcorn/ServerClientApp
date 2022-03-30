@@ -126,9 +126,9 @@ bool C_Client::send( std::string strMessage )
         std::cout << m_socket->name() << ":\tClient Sent message {"
                   << message.data() << "} size: " << message.size() << std::endl;
     }
-    else {
-        std::cout << m_socket->name() << ":\tBAD Send on Client" << std::endl;
-    }
+//    else {
+//        std::cout << m_socket->name() << ":\tBAD Send on Client" << std::endl;
+//    }
     return sendRes;
 }
 
@@ -156,7 +156,6 @@ bool C_Client::communication( int a_messPerSec, int a_workDuration )
 
     std::string strMessage = "Give me a number!";   // Запрос клиента
 
-    int   sendSize  = 0;    // Размер отправленных данных
     int   recvSize  = 0;    // Размер принятых данных
 
     // Объявление таймера работы клиента
@@ -182,21 +181,20 @@ bool C_Client::communication( int a_messPerSec, int a_workDuration )
 
 
         // Попытка получения сообщения от сервера
-
-
         // Очищение буфера
         std::fill( buffer.begin(), buffer.end(), '\0' );
 
         std::string fromAddr;
+
         recvRes = m_socket->recv( buffer, fromAddr );
         if(recvRes) {
             std::cout << m_socket->name() << ":\tClient Recived message "
                       << buffer.data() << " size: "
                       << recvSize << " from " << fromAddr << std::endl;
         }
-        else {
-            std::cout << m_socket->name() << ":\tBAD Reciev on Client" << std::endl;
-        }
+//        else {
+//            std::cout << m_socket->name() << ":\tBAD Reciev on Client" << std::endl;
+//        }
 
         Sleep( a_messPerSec * 1000 ); // Выдержка в 1 секнду
 

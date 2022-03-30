@@ -120,7 +120,8 @@ bool C_UdpSocket::setNonblock()
     if (  res != NO_ERROR ) {
         ret = false;
         std::cout << "ioctlsocket failed with error: " << res << std::endl;
-    } else {
+    }
+    else {
         std::cout << name() << ": NONBLOCKING success" << std::endl;
 
     }
@@ -199,18 +200,22 @@ bool C_UdpSocket::recv( std::vector<char> &a_buffer, std::string &a_from )
     int recvSize = 0;
 
     // Очистка струтуры адреса
-//    memset( &m_remoteAddr, 0, sizeof(m_remoteAddr) );
+    // memset( &m_remoteAddr, 0, sizeof(m_remoteAddr) );
     ZeroMemory( &m_remoteAddr, sizeof( m_remoteAddr ) );
 
     a_buffer.resize(MAXLINE);
     std::fill( a_buffer.begin(), a_buffer.end(), '\0' );
 
     // Попытка получения запроса
+    do{
     recvSize = recvfrom( m_sockFd, a_buffer.data(), a_buffer.size(), 0,
                             (sockaddr *)&m_remoteAddr, &fromlen);
+    }  while(recvSize == -1 && WSAGetLastError() == 10035 );
+
     if ( recvSize == SOCKET_ERROR ) {
         std::cout << name() <<":\trecvfrom() socket failed with error code : "
                   << WSAGetLastError() << std::endl;
+        return false;
     }
     else {
         a_buffer.resize(recvSize);
@@ -223,8 +228,7 @@ bool C_UdpSocket::recv( std::vector<char> &a_buffer, std::string &a_from )
     a_from = remoteIp + ":" + remotePort;
 
     std::cout << name() << ":\tRecieve from: " << a_from << " message {" << a_buffer.data()
-              << "} Recv size="
-              << a_buffer.size() << std::endl;
+              << "} Recv size=" << a_buffer.size() << std::endl;
 
     return recvRes;
 }

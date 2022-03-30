@@ -44,6 +44,7 @@
 
 #include <chrono>
 #include <map>
+#include <cerrno>
 
 #include "I_Socket.h"
 #include "SocketCreator.h"
