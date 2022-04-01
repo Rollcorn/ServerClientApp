@@ -136,6 +136,27 @@ bool C_Client::send( std::string strMessage )
     return sendRes;
 }
 
+/*******************************************************************************
+ * Попытка получения сообщения
+ *
+ */
+bool C_Client::recv( std::vector<char> &buffer, std::string &fromAddr)
+{
+    bool recvRes = false;
+    std::fill( buffer.begin(), buffer.end(), '\0' );    // Очищение буфера
+    recvRes = m_socket->recv( buffer, fromAddr );
+    if(recvRes) {
+        std::cout << m_socket->name() << ":\tClient Recived message "
+                  << buffer.data() << " size: "
+                  << buffer.size() << " from " << fromAddr << std::endl;
+    }
+    //        else {
+    //            std::cout << m_socket->name() << ":\tBAD Reciev on Client" << std::endl;
+    //        }
+    return recvRes;
+}
+
+
 /*****************************************************************************
  * Обмен данными с клиентом
  *
@@ -156,10 +177,7 @@ bool C_Client::communication( int a_messPerSec, int a_workDuration )
     bool    sendRes = true; // результат отправки данных
     bool    recvRes = true; // Результат получения данных
 
-    std::vector<char> buffer( m_BufSize );  // Буфер для полученных данных
-
-
-    int   recvSize  = 0;    // Размер принятых данных
+    std::vector<char> buffer( m_BUF_SIZE );  // Буфер для полученных данных
 
     // Объявление таймера работы клиента
     auto start  = std::chrono::steady_clock::now();
@@ -173,8 +191,8 @@ bool C_Client::communication( int a_messPerSec, int a_workDuration )
         auto currTime = std::chrono::steady_clock::now();
 
         // Попытка отправки запроса серверу
-        if( currTime - lastSendTime  >= std::chrono::milliseconds(5000) ){
-            sendRes = send(GET_NUM_MESSEGE);
+        if( currTime - lastSendTime  >= std::chrono::milliseconds(s_sendTimout) ){
+            sendRes = send(s_getNumMessage);
             lastSendTime  = std::chrono::steady_clock::now();
         } else {
             end = std::chrono::steady_clock::now();
@@ -184,20 +202,9 @@ bool C_Client::communication( int a_messPerSec, int a_workDuration )
 
 
         // Попытка получения сообщения от сервера
-        // Очищение буфера
-        std::fill( buffer.begin(), buffer.end(), '\0' );
-
         std::string fromAddr;
 
-        recvRes = m_socket->recv( buffer, fromAddr );
-        if(recvRes) {
-            std::cout << m_socket->name() << ":\tClient Recived message "
-                      << buffer.data() << " size: "
-                      << buffer.size() << " from " << fromAddr << std::endl;
-        }
-//        else {
-//            std::cout << m_socket->name() << ":\tBAD Reciev on Client" << std::endl;
-//        }
+        recvRes = recv( buffer, fromAddr );
 
         Sleep( a_messPerSec * 1000 ); // Выдержка в 1 секнду
 
@@ -205,7 +212,7 @@ bool C_Client::communication( int a_messPerSec, int a_workDuration )
         end = std::chrono::steady_clock::now();
         curentWorkTime = end - start;
     }
-    send(END_CONN_MESSEGE);
+    send(s_endConnMessage);
 
     return sendRes && recvRes;
 }

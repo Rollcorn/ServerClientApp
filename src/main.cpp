@@ -17,7 +17,7 @@
 
 #include "C_Server.h"
 #include "C_Client.h"
-#include "config.h"
+#include "Config.h"
 
 
 /*****************************************************************************

@@ -146,9 +146,6 @@ bool C_Server::communication()
     bool recvRes = true;
     bool sendRes = true;
 
-    int recvSize = 0;
-    int sendSize = 0;
-
     std::vector<char> buffer(m_bufferSize); // Буфер для полученных данных
 
     std::random_device  rd;
@@ -169,12 +166,7 @@ bool C_Server::communication()
 
         std::string fromAddr;
         // Попытка получения запроса от клиента
-        recvRes = recv( buffer, fromAddr );
-        if (recvRes) {
-            std::cout << m_socket->name() << ":\tServer Recived message: {"
-                      << buffer.data() << "} size: " << buffer.size()
-                      << " from " << fromAddr << std::endl;
-        }
+        recvRes = recv( buffer, fromAddr);
 //        else {
 //            std::cout << m_socket->name() << ":\tBAD Recieve on Server. Buffer size: "
 //                      << buffer.size() << " From address: " << fromAddr
@@ -248,24 +240,34 @@ bool C_Server::flush()
     return discRes && flushRes;
 }
 
-bool C_Server::recv(std::vector<char> &buffer, std::string &fromAddr)
+/*****************************************************************************
+ * Отправка сообщения
+ *
+ * [in]
+ *
+ * @return
+ *  успешность закрытия соединения
+ */
+bool C_Server::recv( std::vector<char> &buffer, std::string &fromAddr)
 {
     bool recvRes = true;
 
     // Попытка получения запроса от клиента
     do {
-    recvRes = m_socket->recv( buffer, fromAddr );
-    } while( !recvRes && buffer.size() <= 0 );
+        recvRes = m_socket->recv( buffer, fromAddr );
+    } while( !recvRes || errno == ERR_BUFEMPT );
 
-    if (recvRes) {
+    if (!recvRes) {
+        if ( errno == ERR_BADRECV ){
+            std::cout << m_socket->name() << ":\tBAD Recieve on Server. Buffer size: "
+                      << buffer.size() << " From address: " << fromAddr
+                      << std::endl;
+        }
+    }
+    else {
         std::cout << m_socket->name() << ":\tServer Recived message: {"
                   << buffer.data() << "} size: " << buffer.size()
                   << " from " << fromAddr << std::endl;
-    }
-    else {
-        std::cout << m_socket->name() << ":\tBAD Recieve on Server. Buffer size: "
-                  << buffer.size() << " From address: " << fromAddr
-                  << std::endl;
     }
     return recvRes;
 }

@@ -49,6 +49,8 @@
 #include "I_Socket.h"
 #include "SocketCreator.h"
 #include "C_UdpSocket.h"
+#include "ErrorCodes.h"
+
 
 namespace myTask {
 
@@ -80,6 +82,7 @@ public:
 
     // Закрытие сокета клиента
     bool flush();
+
 
 private:
     bool recv( std::vector<char> &buffer, std::string &fromAddr );

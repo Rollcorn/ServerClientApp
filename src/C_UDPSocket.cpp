@@ -154,15 +154,14 @@ bool C_UdpSocket::open()
 bool C_UdpSocket::send( const std::vector<char> &a_data, const std::string &a_to )
 {
 
-    bool    sendRes = false;
-    socklen_t tolen = sizeof(m_remoteAddr); // Определение размера длины адреса назначения
+    bool    sendRes = false;    // Результат отправки
+    socklen_t tolen = sizeof(m_remoteAddr); //  Размера адреса назначения
 
     // Поиск разделителя ip и порта в строке a_to
     int sepIndex = 0;
     while( (sepIndex < a_to.length()) && (a_to.c_str()[sepIndex] != ':') ){
         ++sepIndex;
     }
-
     std::string remoteIp = a_to.substr(0, sepIndex);
     std::string remotePort = a_to.substr(sepIndex + 1, a_to.length() );
 
@@ -206,28 +205,25 @@ bool C_UdpSocket::recv( std::vector<char> &a_buffer, std::string &a_from )
     std::fill( a_buffer.begin(), a_buffer.end(), '\0' );
 
     // Попытка получения запроса
-    do{
+
     recvSize = recvfrom( m_sockFd, a_buffer.data(), a_buffer.size(), 0,
                             (sockaddr *)&m_remoteAddr, &fromlen);
-    }  while(recvSize == -1 && WSAGetLastError() == 10035 );
 
     if ( recvSize == SOCKET_ERROR ) {
-        std::cout << name() <<":\trecvfrom() socket failed with error code : "
-                  << WSAGetLastError() << std::endl;
+        if (a_buffer.size() == 0 ){
+            errno = ERR_BUFEMPT;
+        }
         return false;
     }
     else {
+        errno = OK;
         a_buffer.resize(recvSize);
-//        a_buffer.push_back('\0');
         recvRes = true;
     }
 
     std::string remoteIp    = inet_ntoa( m_remoteAddr.sin_addr);
     std::string remotePort  = std::to_string( ntohs(m_remoteAddr.sin_port) );
     a_from = remoteIp + ":" + remotePort;
-
-    std::cout << name() << ":\tRecieve from: " << a_from << " message {" << a_buffer.data()
-              << "} Recv size=" << a_buffer.size() << std::endl;
 
     return recvRes;
 }

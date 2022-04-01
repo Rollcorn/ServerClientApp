@@ -88,7 +88,8 @@
 #include <iphlpapi.h>
 
 #include "I_Socket.h"
-#include "config.h"
+#include "Config.h"
+#include "ErrorCodes.h"
 
 namespace myTask {
 
@@ -160,7 +161,6 @@ private:
     std::string m_remIp;        // IP адресс удаленного сокета
     short       m_remPort;      // Порт удаленного сокета
     bool        m_isBlocking;   // Статус блокироки потока сокета
-
     /**
      * Данные сокета
      */

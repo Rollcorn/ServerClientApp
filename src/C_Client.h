@@ -49,7 +49,7 @@
 #include "I_Socket.h"
 #include "SocketCreator.h"
 #include "C_UdpSocket.h"
-#include "config.h"
+#include "Config.h"
 
 namespace myTask {
 
@@ -82,23 +82,27 @@ public:
     // Закрытие сокета клиента
     bool flush();
 
+    bool recv( std::vector<char> &buffer, std::string &fromAddr);
+
 private:
 
     bool send( std::string message );
-    const std::string GET_NUM_MESSEGE= "Give me a number!";   // Запрос клиента
-    const std::string END_CONN_MESSEGE= "Stop Connection";   // Запрос клиента
+    const std::string s_getNumMessage= "Give me a number!";   // Запрос клиента
+    const std::string s_endConnMessage= "Stop Connection";   // Запрос клиента
 
     std::string m_ownIp;
     std::string m_ownPort;
     std::string m_remIp;
     std::string m_remPort;
-    int        m_blocking;
+    int         m_blocking;
+
+    const int   s_sendTimout = 5000;
 
     // Сокет клиента
     I_Socket* m_socket = nullptr;
 
     // Размер буфера сообщений клиента
-    const int m_BufSize = 512;
+    const int m_BUF_SIZE = 512;
 
     // Запуск сетевого взаимодействия с сервером
     bool communication( int messPerSec, int workDuration );
