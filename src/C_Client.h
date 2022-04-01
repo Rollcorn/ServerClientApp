@@ -85,6 +85,8 @@ public:
 private:
 
     bool send( std::string message );
+    const std::string GET_NUM_MESSEGE= "Give me a number!";   // Запрос клиента
+    const std::string END_CONN_MESSEGE= "Stop Connection";   // Запрос клиента
 
     std::string m_ownIp;
     std::string m_ownPort;

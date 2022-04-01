@@ -93,6 +93,9 @@ private:
 
     // Обмен данными с клиентом
     bool communication( );
+    bool endConnSignal = false;
+    const std::string END_CONN_MESSEGE= "Stop Connection";   // Запрос клиента
+
 
     // Объект обеспечивающий связь клиента с сервером
     I_Socket*  m_socket = nullptr;

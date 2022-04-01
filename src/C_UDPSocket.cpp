@@ -157,6 +157,7 @@ bool C_UdpSocket::send( const std::vector<char> &a_data, const std::string &a_to
     bool    sendRes = false;
     socklen_t tolen = sizeof(m_remoteAddr); // Определение размера длины адреса назначения
 
+    // Поиск разделителя ip и порта в строке a_to
     int sepIndex = 0;
     while( (sepIndex < a_to.length()) && (a_to.c_str()[sepIndex] != ':') ){
         ++sepIndex;
@@ -164,8 +165,6 @@ bool C_UdpSocket::send( const std::vector<char> &a_data, const std::string &a_to
 
     std::string remoteIp = a_to.substr(0, sepIndex);
     std::string remotePort = a_to.substr(sepIndex + 1, a_to.length() );
-    std::cout <<  "SEND remoteIp [" << remoteIp << "]" << std::endl;
-    std::cout <<  "SEND remotePort [" << remotePort << "]" << std::endl;
 
     // Инициализация параметров соединения
     ZeroMemory( &m_remoteAddr, sizeof( m_remoteAddr ) );
@@ -219,7 +218,7 @@ bool C_UdpSocket::recv( std::vector<char> &a_buffer, std::string &a_from )
     }
     else {
         a_buffer.resize(recvSize);
-        a_buffer.push_back('\0');
+//        a_buffer.push_back('\0');
         recvRes = true;
     }
 

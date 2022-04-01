@@ -155,16 +155,16 @@ bool C_Server::communication()
     std::mt19937        gen( rd() );
     int a = -100, b = 100;
     std::uniform_int_distribution<int> dist( a, b );
-
-    while (true ) {
+    std::cout << "==========================================================="
+              << std::endl;
+    while ( !endConnSignal ) {
         recvRes = false;
         sendRes = false;
 
         // Очищение буфера
         std::fill( buffer.begin(), buffer.end(), '\0' );
 
-        std::cout << m_socket->name() << ":\tServer Waiting for data... "
-                  << std::endl;
+
         fflush(stdout);
 
         std::string fromAddr;
@@ -181,10 +181,11 @@ bool C_Server::communication()
 //                      << std::endl;
 //        }
 
+        endConnSignal = buffer.data() == END_CONN_MESSEGE;
 
         std::vector<char> messageVec;
 //      Попытка отправки ответа клиенту на его запрос
-        if (recvRes) {
+        if (!endConnSignal) {
             // Генерируется случайное число
             int num = dist(gen);
 
@@ -192,7 +193,7 @@ bool C_Server::communication()
             std::string messageStr = std::to_string(num);
             messageVec = {messageStr.begin(), messageStr.end() };
             messageVec.push_back('\0');
-            messageVec.resize(messageStr.size() + 1);
+            messageVec.resize(messageStr.length());
 
             sendRes = m_socket->send( messageVec, fromAddr );
         }
@@ -201,6 +202,9 @@ bool C_Server::communication()
                       << messageVec.data() <<  "} Send size: " << messageVec.size() << " "
                       << std::endl;
         }
+        std::cout << "==========================================================="
+                  << std::endl;
+
 //        else {
 //            std::cout << m_socket->name() << ":\tBAD Send on Server " << std::endl;
 //        }

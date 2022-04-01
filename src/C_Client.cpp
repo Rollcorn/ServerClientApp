@@ -43,9 +43,9 @@ C_Client::~C_Client()
  * адресе - ip + порт, и сообщает об об успешности этой завершения операции.
  *
  * @param
- *   [in]    a_conParam - пара значений: first - ip-адрес на котором открывать сокет,
- *                                       second - порт открыть сокет этого сокета.
- *           a_protocol - протокол ip-соединения.
+ *   [in]   a_conParam - пара значений: first  - ip-адрес на котором открывать сокет,
+ *                                      second - порт открыть сокет этого сокета.
+ *   [in]   a_protocol - протокол ip-соединения.
  *
  * @return
  *  успешность создания сокета.
@@ -56,7 +56,6 @@ bool C_Client::setup( ConnectionParams a_conParam )
 
     // Инстанцируем необходимый  сокет
     m_socket = CreateSocket("UDP");
-
     m_blocking = atoi( a_conParam.at("block").c_str() );
 
     // Попытка инициализации сокета клиента
@@ -113,6 +112,11 @@ bool C_Client::workingSession( int a_messPerSec, int a_workDuration )
     return commRes && discRes;
 }
 
+/*******************************************************************************
+ * Попытка отправки сообщения
+ *
+ */
+
 bool C_Client::send( std::string strMessage )
 {
     bool sendRes = true; // результат отправки данных
@@ -145,7 +149,7 @@ bool C_Client::send( std::string strMessage )
  *                       запрсов) в секундах.
  *
  * @return
- * корректность обмена данными с удаленным сокетом
+ *  корректность обмена данными с удаленным сокетом
  */
 bool C_Client::communication( int a_messPerSec, int a_workDuration )
 {
@@ -154,7 +158,6 @@ bool C_Client::communication( int a_messPerSec, int a_workDuration )
 
     std::vector<char> buffer( m_BufSize );  // Буфер для полученных данных
 
-    std::string strMessage = "Give me a number!";   // Запрос клиента
 
     int   recvSize  = 0;    // Размер принятых данных
 
@@ -171,7 +174,7 @@ bool C_Client::communication( int a_messPerSec, int a_workDuration )
 
         // Попытка отправки запроса серверу
         if( currTime - lastSendTime  >= std::chrono::milliseconds(5000) ){
-            sendRes = send(strMessage);
+            sendRes = send(GET_NUM_MESSEGE);
             lastSendTime  = std::chrono::steady_clock::now();
         } else {
             end = std::chrono::steady_clock::now();
@@ -190,7 +193,7 @@ bool C_Client::communication( int a_messPerSec, int a_workDuration )
         if(recvRes) {
             std::cout << m_socket->name() << ":\tClient Recived message "
                       << buffer.data() << " size: "
-                      << recvSize << " from " << fromAddr << std::endl;
+                      << buffer.size() << " from " << fromAddr << std::endl;
         }
 //        else {
 //            std::cout << m_socket->name() << ":\tBAD Reciev on Client" << std::endl;
@@ -201,8 +204,8 @@ bool C_Client::communication( int a_messPerSec, int a_workDuration )
         // Обновление таймера
         end = std::chrono::steady_clock::now();
         curentWorkTime = end - start;
-
     }
+    send(END_CONN_MESSEGE);
 
     return sendRes && recvRes;
 }

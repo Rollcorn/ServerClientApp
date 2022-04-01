@@ -80,6 +80,7 @@
 #include <vector>
 #include <utility>
 #include <map>
+#include <cerrno>
 
 #include <winsock2.h>
 #include <windows.h>
