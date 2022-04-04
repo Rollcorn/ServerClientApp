@@ -96,8 +96,8 @@ private:
 
     // Обмен данными с клиентом
     bool communication( );
-    bool endConnSignal = false;
-    const std::string END_CONN_MESSEGE= "Stop Connection";   // Запрос клиента
+    bool m_isEndConnSignal = false;
+    const std::string s_endConnMessage= "Stop Connection";   // Запрос клиента
 
 
     // Объект обеспечивающий связь клиента с сервером

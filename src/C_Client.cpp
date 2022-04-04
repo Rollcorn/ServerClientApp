@@ -45,14 +45,13 @@ C_Client::~C_Client()
  * @param
  *   [in]   a_conParam - пара значений: first  - ip-адрес на котором открывать сокет,
  *                                      second - порт открыть сокет этого сокета.
- *   [in]   a_protocol - протокол ip-соединения.
  *
  * @return
  *  успешность создания сокета.
  */
 bool C_Client::setup( ConnectionParams a_conParam )
 {
-    bool setupRes = false; // Результат запуска сокета
+    bool setupRes = false; // Результат запуска клиента
 
     // Инстанцируем необходимый  сокет
     m_socket = CreateSocket("UDP");
@@ -65,8 +64,8 @@ bool C_Client::setup( ConnectionParams a_conParam )
                   << std::endl;
     }
     else {
-        std::cout << m_socket->name() << ":\tClient Socket creating FAILED."
-                  << std::endl;
+        std::cout << m_socket->name() << ":\tClient Socket creating FAILED. Errno ["
+                  << errno << "]" << std::endl;
     }
 
     return setupRes;
@@ -130,9 +129,13 @@ bool C_Client::send( std::string strMessage )
         std::cout << m_socket->name() << ":\tClient Sent message {"
                   << message.data() << "} size: " << message.size() << std::endl;
     }
-//    else {
-//        std::cout << m_socket->name() << ":\tBAD Send on Client" << std::endl;
-//    }
+
+    if (!sendRes) {
+        std::cout << m_socket->name() << ":\tBAD Send on Client. Errno ["
+                   << "]" << std::endl;
+        perror("client");
+    }
+
     return sendRes;
 }
 
@@ -143,16 +146,19 @@ bool C_Client::send( std::string strMessage )
 bool C_Client::recv( std::vector<char> &buffer, std::string &fromAddr)
 {
     bool recvRes = false;
-    std::fill( buffer.begin(), buffer.end(), '\0' );    // Очищение буфера
+    std::fill( buffer.begin(), buffer.end(), '\0' ); // Очищение буфера
     recvRes = m_socket->recv( buffer, fromAddr );
-    if(recvRes) {
+    if( recvRes ) {
         std::cout << m_socket->name() << ":\tClient Recived message "
                   << buffer.data() << " size: "
                   << buffer.size() << " from " << fromAddr << std::endl;
     }
-    //        else {
-    //            std::cout << m_socket->name() << ":\tBAD Reciev on Client" << std::endl;
-    //        }
+
+    if (!recvRes){
+          std::cout << m_socket->name() << ":\tBAD Reciev on Client. Errno ["
+                    << "]"  << std::endl;
+           perror("errno ");
+      }
     return recvRes;
 }
 
@@ -174,25 +180,25 @@ bool C_Client::recv( std::vector<char> &buffer, std::string &fromAddr)
  */
 bool C_Client::communication( int a_messPerSec, int a_workDuration )
 {
-    bool    sendRes = true; // результат отправки данных
-    bool    recvRes = true; // Результат получения данных
+    bool    okSend = false; // результат отправки данных
+    bool    okRecv = false; // Результат получения данных
 
     std::vector<char> buffer( m_BUF_SIZE );  // Буфер для полученных данных
 
-    // Объявление таймера работы клиента
+    // Определение таймера работы клиента
     auto start  = std::chrono::steady_clock::now();
-    auto end    = std::chrono::steady_clock::now();
+    auto end    = start;
     std::chrono::duration<double> curentWorkTime = end - start;
 
-    auto lastSendTime  = std::chrono::steady_clock::now();
+    auto lastSendTime  = start - s_sendTimout;
 
-    while ( ( curentWorkTime.count() < a_workDuration ) )
+    do
     {
-        auto currTime = std::chrono::steady_clock::now();
+         auto currTime = std::chrono::steady_clock::now();
 
         // Попытка отправки запроса серверу
-        if( currTime - lastSendTime  >= std::chrono::milliseconds(s_sendTimout) ){
-            sendRes = send(s_getNumMessage);
+        if (currTime - lastSendTime  >= std::chrono::milliseconds(s_sendTimout) ){
+            okSend = send(s_getNumMessage);
             lastSendTime  = std::chrono::steady_clock::now();
         } else {
             end = std::chrono::steady_clock::now();
@@ -204,17 +210,21 @@ bool C_Client::communication( int a_messPerSec, int a_workDuration )
         // Попытка получения сообщения от сервера
         std::string fromAddr;
 
-        recvRes = recv( buffer, fromAddr );
+        if (okSend){
+            okRecv = recv( buffer, fromAddr );
 
-        Sleep( a_messPerSec * 1000 ); // Выдержка в 1 секнду
+            Sleep( a_messPerSec * 1000 ); // Выдержка в 1 секнду
 
-        // Обновление таймера
-        end = std::chrono::steady_clock::now();
-        curentWorkTime = end - start;
-    }
+            // Обновление таймера
+            end = std::chrono::steady_clock::now();
+            curentWorkTime = end - start;
+        }
+
+    } while ( okSend && okRecv && (curentWorkTime.count() <= a_workDuration) );
+
     send(s_endConnMessage);
 
-    return sendRes && recvRes;
+    return okSend && okRecv;
 }
 
 /*****************************************************************************

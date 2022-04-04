@@ -52,7 +52,6 @@ C_Server::~C_Server()
  *
  * @param
  *   [in]    a_conParam - вектор пар значений.
- *           a_optFlag  - флаговая переменная опций сокета .
  *
  * @return
  *
@@ -148,13 +147,14 @@ bool C_Server::communication()
 
     std::vector<char> buffer(m_bufferSize); // Буфер для полученных данных
 
+    // Генерация случайного числа
     std::random_device  rd;
     std::mt19937        gen( rd() );
     int a = -100, b = 100;
     std::uniform_int_distribution<int> dist( a, b );
-    std::cout << "==========================================================="
-              << std::endl;
-    while ( !endConnSignal ) {
+    std::cout << "===========================================================" << std::endl;
+
+    while ( !m_isEndConnSignal ) {
         recvRes = false;
         sendRes = false;
 
@@ -173,11 +173,11 @@ bool C_Server::communication()
 //                      << std::endl;
 //        }
 
-        endConnSignal = buffer.data() == END_CONN_MESSEGE;
+        m_isEndConnSignal = buffer.data() == s_endConnMessage;
 
         std::vector<char> messageVec;
 //      Попытка отправки ответа клиенту на его запрос
-        if (!endConnSignal) {
+        if (!m_isEndConnSignal) {
             // Генерируется случайное число
             int num = dist(gen);
 

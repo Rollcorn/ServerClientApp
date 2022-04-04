@@ -87,6 +87,9 @@ public:
 private:
 
     bool send( std::string message );
+
+
+    const std::chrono::milliseconds   s_sendTimout = std::chrono::milliseconds(1000);
     const std::string s_getNumMessage= "Give me a number!";   // Запрос клиента
     const std::string s_endConnMessage= "Stop Connection";   // Запрос клиента
 
@@ -96,7 +99,6 @@ private:
     std::string m_remPort;
     int         m_blocking;
 
-    const int   s_sendTimout = 5000;
 
     // Сокет клиента
     I_Socket* m_socket = nullptr;
