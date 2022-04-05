@@ -46,7 +46,7 @@ C_Server::~C_Server()
 /*****************************************************************************
  * Запуск сокета сервера
  *
- * Функция запускает сокет - m_socket.setup, открывает на установленном адресе
+ * Запускает сокет - m_socket.setup, открывает на установленном адресе
  * соединие - m_socket.open. При возникновении проблемы в одном из этапов
  * метод возвращает false.
  *
@@ -161,22 +161,17 @@ bool C_Server::communication()
         // Очищение буфера
         std::fill( buffer.begin(), buffer.end(), '\0' );
 
-
         fflush(stdout);
 
-        std::string fromAddr;
         // Попытка получения запроса от клиента
+        std::string fromAddr;
         recvRes = recv( buffer, fromAddr);
-//        else {
-//            std::cout << m_socket->name() << ":\tBAD Recieve on Server. Buffer size: "
-//                      << buffer.size() << " From address: " << fromAddr
-//                      << std::endl;
-//        }
 
         m_isEndConnSignal = buffer.data() == s_endConnMessage;
 
+        // Попытка отправки ответа клиенту на его запрос
         std::vector<char> messageVec;
-//      Попытка отправки ответа клиенту на его запрос
+
         if (!m_isEndConnSignal) {
             // Генерируется случайное число
             int num = dist(gen);
@@ -190,16 +185,12 @@ bool C_Server::communication()
             sendRes = m_socket->send( messageVec, fromAddr );
         }
         if (sendRes) {
-            std::cout << m_socket->name() << ":\tServer Sent message {"
-                      << messageVec.data() <<  "} Send size: " << messageVec.size() << " "
+            std::cout << m_socket->name() << ":\tServer Sent message ["
+                      << messageVec.data() <<  "] Send size: " << messageVec.size() << " "
                       << std::endl;
         }
         std::cout << "==========================================================="
                   << std::endl;
-
-//        else {
-//            std::cout << m_socket->name() << ":\tBAD Send on Server " << std::endl;
-//        }
     }
 
     return recvRes && sendRes;
@@ -250,26 +241,30 @@ bool C_Server::flush()
  */
 bool C_Server::recv( std::vector<char> &buffer, std::string &fromAddr)
 {
-    bool recvRes = true;
+    bool okRecv= true;
+
+    std::fill( buffer.begin(), buffer.end(), '\0' ); // Очищение буфера
 
     // Попытка получения запроса от клиента
     do {
-        recvRes = m_socket->recv( buffer, fromAddr );
-    } while( !recvRes || errno == ERR_BUFEMPT );
+        okRecv = m_socket->recv( buffer, fromAddr );
+    } while( !(okRecv && errno != ERR_BUFEMPT) );
 
-    if (!recvRes) {
+    if (okRecv) {
+        std::cout << m_socket->name() << ":\tServer Recived message ["
+                  << buffer.data() << "], size: ["
+                  << buffer.size() << "], from [" << fromAddr << "]" << std::endl;
+    } else {
         if ( errno == ERR_BADRECV ){
-            std::cout << m_socket->name() << ":\tBAD Recieve on Server. Buffer size: "
-                      << buffer.size() << " From address: " << fromAddr
+            std::cout << m_socket->name() << ":\tBAD Recieve on Server Side."
                       << std::endl;
+        } else {
+            std::cout << m_socket->name() << ":\tUnexpectred Error"
+                      << ":\tUnexpectred Error: " << strerror(errno)<< std::endl;
         }
     }
-    else {
-        std::cout << m_socket->name() << ":\tServer Recived message: {"
-                  << buffer.data() << "} size: " << buffer.size()
-                  << " from " << fromAddr << std::endl;
-    }
-    return recvRes;
+
+    return okRecv;
 }
 
 /*****************************************************************************

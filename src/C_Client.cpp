@@ -118,25 +118,22 @@ bool C_Client::workingSession( int a_messPerSec, int a_workDuration )
 
 bool C_Client::send( std::string strMessage )
 {
-    bool sendRes = true; // результат отправки данных
+    bool okSend= true; // результат отправки данных
 
     std::vector<char> message = {strMessage.begin(), strMessage.end()};
     message.push_back( '\0' );
     message.resize(strMessage.length() );
 
-    sendRes = m_socket->send( message, m_socket->remoteAddr());
-    if(sendRes){
-        std::cout << m_socket->name() << ":\tClient Sent message {"
-                  << message.data() << "} size: " << message.size() << std::endl;
-    }
-
-    if (!sendRes) {
+    okSend = m_socket->send( message, m_socket->remoteAddr());
+    if(okSend){
+        std::cout << m_socket->name() << ":\tClient Sent message ["
+                  << message.data() << "], size: [" << message.size() << "]" << std::endl;
+    } else {
         std::cout << m_socket->name() << ":\tBAD Send on Client. Errno ["
-                   << "]" << std::endl;
-        perror("client");
+                  << strerror(errno) << "]" << std::endl;
     }
 
-    return sendRes;
+    return okSend;
 }
 
 /*******************************************************************************
@@ -145,21 +142,31 @@ bool C_Client::send( std::string strMessage )
  */
 bool C_Client::recv( std::vector<char> &buffer, std::string &fromAddr)
 {
-    bool recvRes = false;
+    bool okRecv = false;
+
+
     std::fill( buffer.begin(), buffer.end(), '\0' ); // Очищение буфера
-    recvRes = m_socket->recv( buffer, fromAddr );
-    if( recvRes ) {
+
+    // Попытка получения запроса от клиента
+    do {
+        okRecv = m_socket->recv( buffer, fromAddr );
+    } while( !okRecv || errno == ERR_BUFEMPT );
+
+    if( okRecv ) {
         std::cout << m_socket->name() << ":\tClient Recived message "
-                  << buffer.data() << " size: "
-                  << buffer.size() << " from " << fromAddr << std::endl;
+                  << buffer.data() << "], size: ["
+                  << buffer.size() << "], from [" << fromAddr << "]" << std::endl;
+    } else {
+        if ( errno == ERR_BADRECV ){
+            std::cout << m_socket->name() << ":\tBAD Reciev on Client Side." << std::endl;
+        } else {
+            std::cout << m_socket->name() << ":\tUnexpectred Error"
+                      << ":\tUnexpectred Error: " << strerror(errno)<< std::endl;
+        }
     }
 
-    if (!recvRes){
-          std::cout << m_socket->name() << ":\tBAD Reciev on Client. Errno ["
-                    << "]"  << std::endl;
-           perror("errno ");
-      }
-    return recvRes;
+
+    return okRecv;
 }
 
 
