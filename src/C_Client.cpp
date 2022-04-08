@@ -43,19 +43,18 @@ C_Client::~C_Client()
  * адресе - ip + порт, и сообщает об об успешности этой завершения операции.
  *
  * @param
- *   [in]   a_conParam - пара значений: first  - ip-адрес на котором открывать сокет,
- *                                      second - порт открыть сокет этого сокета.
+ *   [in]   a_conParam - словарь содержащий парамметры конфигурации соединения.
  *
  * @return
  *  успешность создания сокета.
  */
-bool C_Client::setup( ConnectionParams a_conParam )
+bool C_Client::setup( ConParams a_conParam )
 {
     bool setupRes = false; // Результат запуска клиента
 
     // Инстанцируем необходимый  сокет
     m_socket = CreateSocket("UDP");
-    m_blocking = atoi( a_conParam.at("block").c_str() );
+//    m_blocking = atoi( a_conParam.at("block").c_str() );
 
     // Попытка инициализации сокета клиента
     setupRes = m_socket->setup( a_conParam );
@@ -65,7 +64,7 @@ bool C_Client::setup( ConnectionParams a_conParam )
     }
     else {
         std::cout << m_socket->name() << ":\tClient Socket creating FAILED. Errno ["
-                  << errno << "]" << std::endl;
+                  << strerror(errno) << "]" << std::endl;
     }
 
     return setupRes;
@@ -81,21 +80,21 @@ bool C_Client::setup( ConnectionParams a_conParam )
  *
  * @param
  *  [in] a_messPerSec - частота отправления запросов.
- *       a_workDuration - длительность работы клиента.
+ *  [in] a_workDuration - длительность работы клиента.
  *
  * @return
  *  корректность провдения сетевого взаимодействия
  */
 bool C_Client::workingSession( int a_messPerSec, int a_workDuration )
 {
-    bool commRes = false;
-    bool discRes = false;
+    bool okComm = false;
+    bool okDisc = false;
 
     std::cout << m_socket->name() << ":\tCLIENT COMUNICATION STARTED. " << std::endl;
 
     // Попытка запуска сетевого взяимодействия со стороны клиента
-    commRes = communication( a_messPerSec, a_workDuration );
-    if (commRes) {
+    okComm = communication( a_messPerSec, a_workDuration );
+    if (okComm) {
         std::cout << m_socket->name() << ":\tClient Communication SUCCESS. " << std::endl;
     }
     else {
@@ -103,26 +102,31 @@ bool C_Client::workingSession( int a_messPerSec, int a_workDuration )
     }
 
     // Попытка закрытия сокета
-    discRes = m_socket->flush();
-    if (discRes) {
+    okDisc = m_socket->flush();
+    if (okDisc) {
         std::cout << m_socket->name() << ":\tCLIENT SOCK CLOSED SUCCESS. " << std::endl;
     }
 
-    return commRes && discRes;
+    return okComm && okDisc;
 }
 
 /*******************************************************************************
  * Попытка отправки сообщения
  *
+ * @param
+ *  [in] a_strMessage - данные для отправки.
+ *
+ * @return
+ *  успешность отправки
  */
-
-bool C_Client::send( std::string strMessage )
+bool C_Client::send( std::string a_strMessage )
 {
     bool okSend= true; // результат отправки данных
 
-    std::vector<char> message = {strMessage.begin(), strMessage.end()};
+    std::vector<char> message = {a_strMessage.begin(), a_strMessage.end()};
     message.push_back( '\0' );
-    message.resize(strMessage.length() );
+    // Вызов resize() важен чтобы не получить мусора в данных
+    message.resize(a_strMessage.length() );
 
     okSend = m_socket->send( message, m_socket->remoteAddr());
     if(okSend){
@@ -131,6 +135,7 @@ bool C_Client::send( std::string strMessage )
     } else {
         std::cout << m_socket->name() << ":\tBAD Send on Client. Errno ["
                   << strerror(errno) << "]" << std::endl;
+        // TODO обработка errno
     }
 
     return okSend;
@@ -140,31 +145,29 @@ bool C_Client::send( std::string strMessage )
  * Попытка получения сообщения
  *
  */
-bool C_Client::recv( std::vector<char> &buffer, std::string &fromAddr)
+bool C_Client::recv( std::vector<char> &a_buffer, std::string &a_fromAddr)
 {
     bool okRecv = false;
 
-
-    std::fill( buffer.begin(), buffer.end(), '\0' ); // Очищение буфера
+    // Вызов fill() важен чтобы не получить мусора в данных
+    std::fill( a_buffer.begin(), a_buffer.end(), '\0' );
 
     // Попытка получения запроса от клиента
     do {
-        okRecv = m_socket->recv( buffer, fromAddr );
+        okRecv = m_socket->recv( a_buffer, a_fromAddr );
     } while( !okRecv || errno == ERR_BUFEMPT );
 
     if( okRecv ) {
-        std::cout << m_socket->name() << ":\tClient Recived message "
-                  << buffer.data() << "], size: ["
-                  << buffer.size() << "], from [" << fromAddr << "]" << std::endl;
+        std::cout << m_socket->name() << ":\tClient Recived message ["
+                  << a_buffer.data() << "], size: ["
+                  << a_buffer.size() << "], from [" << a_fromAddr << "]" << std::endl;
     } else {
         if ( errno == ERR_BADRECV ){
             std::cout << m_socket->name() << ":\tBAD Reciev on Client Side." << std::endl;
         } else {
-            std::cout << m_socket->name() << ":\tUnexpectred Error"
-                      << ":\tUnexpectred Error: " << strerror(errno)<< std::endl;
+            std::cout << m_socket->name() << ":\tUnexpectred Error: " << strerror(errno) << std::endl;
         }
     }
-
 
     return okRecv;
 }
@@ -178,9 +181,9 @@ bool C_Client::recv( std::vector<char> &buffer, std::string &fromAddr)
  * По истечении выделенного времени communication заверншает работу.
  *
  * @param
- * [in] a_messPerSec   - количество запросов отправляемых на сервер в секунду
- *      a_workDuration - длительность работы клиента (длительность отправки
- *                       запрсов) в секундах.
+ *  [in] a_messPerSec   - количество запросов отправляемых на сервер в секунду
+ *  [in] a_workDuration - длительность работы клиента (длительность отправки
+ *                        запрсов) в секундах.
  *
  * @return
  *  корректность обмена данными с удаленным сокетом
@@ -190,7 +193,7 @@ bool C_Client::communication( int a_messPerSec, int a_workDuration )
     bool    okSend = false; // результат отправки данных
     bool    okRecv = false; // Результат получения данных
 
-    std::vector<char> buffer( m_BUF_SIZE );  // Буфер для полученных данных
+    std::vector<char> buffer( s_bufferLen );  // Буфер для полученных данных
 
     // Определение таймера работы клиента
     auto start  = std::chrono::steady_clock::now();
@@ -229,9 +232,9 @@ bool C_Client::communication( int a_messPerSec, int a_workDuration )
 
     } while ( okSend && okRecv && (curentWorkTime.count() <= a_workDuration) );
 
-    send(s_endConnMessage);
+    bool okEndConn = send(s_endConnMessage);
 
-    return okSend && okRecv;
+    return okSend && okRecv && okEndConn;
 }
 
 /*****************************************************************************

@@ -53,14 +53,14 @@ int main()
 {
 
     // Инициализация параметров соединия для сервера
-    ConnectionParams servParams { {"ownIp", "127.0.0.1"}, {"ownPort", "5000"},
-                                  {"remIp", "127.0.0.1"}, {"remPort", "5005"},
-                                  {"block", "1"} };
+    ConParams servParams { {"ownIp", "127.0.0.1"}, {"ownPort", "5000"},
+                           {"remIp", "127.0.0.1"}, {"remPort", "5005"},
+                           {"block", "1"} };
 
     // Инициализация параметров соединия для клиента
-    ConnectionParams cliParams { {"ownIp", "127.0.0.1"}, {"ownPort", "5005"},
-                                 {"remIp", "127.0.0.1"}, {"remPort", "5000"},
-                                 {"block", "1"} };
+    ConParams cliParams { {"ownIp", "127.0.0.1"}, {"ownPort", "5005"},
+                          {"remIp", "127.0.0.1"}, {"remPort", "5000"},
+                          {"block", "1"} };
 
 
     int messPerS     = 1;   // частота отправки запросов на сервевер (сообщений в секунду)

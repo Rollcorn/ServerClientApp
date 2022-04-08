@@ -51,10 +51,10 @@ C_Server::~C_Server()
  * метод возвращает false.
  *
  * @param
- *   [in]    a_conParam - вектор пар значений.
+ *   [in] a_conParam - контейнер и данными конфигурации соединения.
  *
  * @return
- *
+ *  успешность запуска
  */
 bool C_Server::setup( std::map<std::string, std::string> a_conParam )
 {
@@ -69,15 +69,13 @@ bool C_Server::setup( std::map<std::string, std::string> a_conParam )
     m_ownPort = a_conParam.at("ownPort");
     m_remIp   = a_conParam.at("remIp");
     m_remPort = a_conParam.at("remPort");
-
     m_blocking = std::stoi( a_conParam.at("block") );
 
     // Инициализация сокета клиента
     setupRes = m_socket->setup( a_conParam );
     if (setupRes) {
         std::cout << m_socket->name() << ":\tServer Socket CREATING SUCCESS." << std::endl;
-    }
-    else {
+    } else {
         std::cout << m_socket->name() << ":\tServer Socket CREATING FAILED." << std::endl;
     }
 
@@ -85,11 +83,9 @@ bool C_Server::setup( std::map<std::string, std::string> a_conParam )
     openRes = m_socket->open();
     if (openRes) {
         std::cout << m_socket->name() << ":\tServer Socket OPENING SUCCESS." << std::endl;
-    }
-    else {
+    } else {
         std::cout << m_socket->name() << ":\tServer Socket OPENING FAILED." << std::endl;
     }
-
     return setupRes && openRes;
 }
 
@@ -100,31 +96,29 @@ bool C_Server::setup( std::map<std::string, std::string> a_conParam )
  * от необходимого размера буфера для получаемых данных. По завешению функция возвращает
  * true если обмен данными состоялся успешно и сокет успешно закрылся.
  *
- * @param
- *  [in] a_buffSize - размер буфера принимающего сообщение.
- *
  * @return
  *  успешность проведения сетевого взаимодействия
  */
 bool C_Server::workingSession()
 {
-    bool workRes = false;
+    bool okWork = false;
     bool flushRes = false;
 
     std::cout << m_socket->name() << ":\tSERVER COMUNICATION STARTED.\n";
 
     // Попытка запуска комуникации с сервером
-    workRes = communication();
-    if( workRes ) {
+    okWork = communication();
+    if( okWork ) {
         std::cout << m_socket->name() << ":\tServer Start communacation SUCCESS. " << std::endl;
     } else {
-        std::cout << m_socket->name() << ":\tServer communacation FAILED. " << std::endl;
+        std::cout << m_socket->name() << ":\tServer communacation FAILED. "
+                  << strerror(errno) << std::endl;
     }
 
     // Попытка закрыть соединение и освободить ресурсы соединения
     flushRes = flush();
 
-    return workRes && flushRes;
+    return okWork && flushRes;
 }
 
 /*****************************************************************************
@@ -133,25 +127,22 @@ bool C_Server::workingSession()
  * Пока клиент не закроет соединение соервер отсылает на каждый запрос клиента
  * случайное число генерируемое в интервале от lowBracket до topBracket.
  *
- * @param
- * [in] a_buffSize - размер буфера в которйы будут передоваться полученные из сокета
- *                   данные.
- *
  * @return
- *  корректность обмена данными с удаленным сокетом
+ *  успешность проведенного обмена данными
  */
 bool C_Server::communication()
 {
     bool recvRes = true;
     bool sendRes = true;
 
-    std::vector<char> buffer(m_bufferSize); // Буфер для полученных данных
+    std::vector<char> buffer(s_bufferLen); // Буфер для полученных данных
 
     // Генерация случайного числа
     std::random_device  rd;
     std::mt19937        gen( rd() );
-    int a = -100, b = 100;
-    std::uniform_int_distribution<int> dist( a, b );
+    int minRandNum = -100;
+    int maxRandNum = 100;
+    std::uniform_int_distribution<int> dist( minRandNum, maxRandNum );
     std::cout << "===========================================================" << std::endl;
 
     while ( !m_isEndConnSignal ) {
@@ -167,7 +158,7 @@ bool C_Server::communication()
         std::string fromAddr;
         recvRes = recv( buffer, fromAddr);
 
-        m_isEndConnSignal = buffer.data() == s_endConnMessage;
+        m_isEndConnSignal = (buffer.data() == s_endConnMessage);
 
         // Попытка отправки ответа клиенту на его запрос
         std::vector<char> messageVec;
@@ -183,8 +174,11 @@ bool C_Server::communication()
             messageVec.resize(messageStr.length());
 
             sendRes = m_socket->send( messageVec, fromAddr );
+        } else {
+            sendRes = true;
         }
-        if (sendRes) {
+
+        if (sendRes && !m_isEndConnSignal) {
             std::cout << m_socket->name() << ":\tServer Sent message ["
                       << messageVec.data() <<  "] Send size: " << messageVec.size() << " "
                       << std::endl;
@@ -239,22 +233,23 @@ bool C_Server::flush()
  * @return
  *  успешность закрытия соединения
  */
-bool C_Server::recv( std::vector<char> &buffer, std::string &fromAddr)
+bool C_Server::recv( std::vector<char> &a_buffer, std::string &a_fromAddr)
 {
     bool okRecv= true;
 
-    std::fill( buffer.begin(), buffer.end(), '\0' ); // Очищение буфера
+    std::fill( a_buffer.begin(), a_buffer.end(), '\0' ); // Очищение буфера
 
     // Попытка получения запроса от клиента
     do {
-        okRecv = m_socket->recv( buffer, fromAddr );
+        okRecv = m_socket->recv( a_buffer, a_fromAddr );
     } while( !(okRecv && errno != ERR_BUFEMPT) );
 
     if (okRecv) {
         std::cout << m_socket->name() << ":\tServer Recived message ["
-                  << buffer.data() << "], size: ["
-                  << buffer.size() << "], from [" << fromAddr << "]" << std::endl;
+                  << a_buffer.data() << "], size: ["
+                  << a_buffer.size() << "], from [" << a_fromAddr << "]" << std::endl;
     } else {
+
         if ( errno == ERR_BADRECV ){
             std::cout << m_socket->name() << ":\tBAD Recieve on Server Side."
                       << std::endl;

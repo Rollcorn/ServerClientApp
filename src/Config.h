@@ -1,3 +1,3 @@
 #pragma once
 
-using ConnectionParams = std::map<std::string, std::string>;
+using ConParams = std::map<std::string, std::string>;

@@ -74,7 +74,7 @@ public:
     ~C_Client();
 
     // Создание/запуск сокета клиента
-    bool setup( ConnectionParams a_conParam);
+    bool setup( ConParams a_conParam);
 
     // Работа клиента
     bool workingSession( int a_messPerSec, int a_workDuration );
@@ -82,32 +82,27 @@ public:
     // Закрытие сокета клиента
     bool flush();
 
-    bool recv( std::vector<char> &buffer, std::string &fromAddr);
 
 private:
+    // Прием сообщения в буфер
+    bool recv( std::vector<char> &a_buffer, std::string &a_fromAddr);
 
-    bool send( std::string message );
+    // Отправка сообщения
+    bool send( std::string a_message );
 
+    // Временной интервал между отправками клиентом сообщений
+    const std::chrono::milliseconds s_sendTimout = std::chrono::milliseconds(1000);
+    const std::string s_getNumMessage= "Give me a number!";   // Запрос данных
+    const std::string s_endConnMessage= "Stop Connection";   // Сигнал к остановке соединения
 
-    const std::chrono::milliseconds   s_sendTimout = std::chrono::milliseconds(1000);
-    const std::string s_getNumMessage= "Give me a number!";   // Запрос клиента
-    const std::string s_endConnMessage= "Stop Connection";   // Запрос клиента
-
-    std::string m_ownIp;
-    std::string m_ownPort;
-    std::string m_remIp;
-    std::string m_remPort;
-    int         m_blocking;
-
+    // Размер буфера сообщений клиента
+    const int s_bufferLen = 512;
 
     // Сокет клиента
     I_Socket* m_socket = nullptr;
 
-    // Размер буфера сообщений клиента
-    const int m_BUF_SIZE = 512;
-
     // Запуск сетевого взаимодействия с сервером
-    bool communication( int messPerSec, int workDuration );
+    bool communication( int a_messPerSec, int a_workDuration );
 };
 
 /*****************************************************************************

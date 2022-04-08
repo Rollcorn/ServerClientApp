@@ -65,7 +65,7 @@ bool C_UdpSocket::initWinsock()
 /*****************************************************************************
  * Создание сокета
  */
-bool C_UdpSocket::setup( ConnectionParams a_conParam )
+bool C_UdpSocket::setup( ConParams a_conParam )
 {
     // Инициализация параметров соединения
     m_ownIp      = a_conParam.at("ownIp");

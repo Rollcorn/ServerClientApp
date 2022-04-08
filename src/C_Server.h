@@ -25,7 +25,7 @@
 
          server.workingSession()
 
-       Метод communication(...) инкапсулирует в workingSession() логику обработкии
+       Метод communication(...) включает в workingSession() логику обработкии
        полученных данных и логику отправки ответа.
 
     4) Закрыть соединение с сокетом и освободить все ресурсы.
@@ -85,26 +85,26 @@ public:
 
 
 private:
-    bool recv( std::vector<char> &buffer, std::string &fromAddr );
+    // Отправка ответа клиенту
+    bool recv( std::vector<char> &a_buffer, std::string &a_fromAddr );
 
+    // Данные соединения
     std::string m_ownIp;
     std::string m_ownPort;
     std::string m_remIp;
     std::string m_remPort;
     int         m_blocking;
 
-
     // Обмен данными с клиентом
     bool communication( );
     bool m_isEndConnSignal = false;
     const std::string s_endConnMessage= "Stop Connection";   // Запрос клиента
 
-
     // Объект обеспечивающий связь клиента с сервером
     I_Socket*  m_socket = nullptr;
 
     // Размер буфера сервера
-    const int m_bufferSize = 1024;
+    const int s_bufferLen = 1024;
 
 };
 
