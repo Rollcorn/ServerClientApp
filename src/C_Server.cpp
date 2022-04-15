@@ -61,8 +61,9 @@ bool C_Server::setup( std::map<std::string, std::string> a_conParam )
     bool setupRes = false; // Результат запуска сокета
     bool openRes  = false; // Результат открытия соединения сокета
 
+    std::string protocol = a_conParam.at("transProt");
     // Инстанцируем необходимый  сокет
-    m_socket = CreateSocket("UDP");
+    m_socket = CreateSocket(protocol);
 
     // Инициализация параметров соединения
     m_ownIp   = a_conParam.at("ownIp");

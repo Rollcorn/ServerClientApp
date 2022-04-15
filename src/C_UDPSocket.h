@@ -91,8 +91,8 @@
 #endif
 
 #include <iostream>
-#include <thread>
-#include <chrono>
+//#include <thread>
+//#include <chrono>
 #include <vector>
 #include <utility>
 #include <map>
@@ -153,6 +153,7 @@ public:
 
     // Адрес удаленного сокета
     std::string remoteAddr();
+
 private:
 
     // Инициализация библиотеки WinSock2

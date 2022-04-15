@@ -51,9 +51,9 @@ C_Client::~C_Client()
 bool C_Client::setup( ConParams a_conParam )
 {
     bool setupRes = false; // Результат запуска клиента
-
+    std::string protocol = a_conParam.at("transProt");
     // Инстанцируем необходимый  сокет
-    m_socket = CreateSocket("UDP");
+    m_socket = CreateSocket(protocol);
 //    m_blocking = atoi( a_conParam.at("block").c_str() );
 
     // Попытка инициализации сокета клиента
