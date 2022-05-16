@@ -50,9 +50,9 @@ namespace myTask {
  *  Объект с интерфейсом I_Socket, реализованным в соответствии с заданным
  *  протоколом.
  */
-I_Socket * CreateSocket( std::string a_protoName )
+I_Connection * CreateSocket( std::string a_protoName )
 {
-    I_Socket* mySock = nullptr;
+    I_Connection *mySock = nullptr;
 
     if ( a_protoName.compare("UDP") == 0 ) {
         mySock = new C_UdpSocket;

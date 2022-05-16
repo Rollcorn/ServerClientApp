@@ -56,21 +56,14 @@ C_Server::~C_Server()
  * @return
  *  успешность запуска
  */
-bool C_Server::setup( std::map<std::string, std::string> a_conParam )
+bool C_Server::setup( const conf_t& a_conParam )
 {
     bool setupRes = false; // Результат запуска сокета
     bool openRes  = false; // Результат открытия соединения сокета
 
-    std::string protocol = a_conParam.at("transProt");
+    std::string protocol = findValByKey( a_conParam, "transProt");
     // Инстанцируем необходимый  сокет
     m_socket = CreateSocket(protocol);
-
-    // Инициализация параметров соединения
-    m_ownIp   = a_conParam.at("ownIp");
-    m_ownPort = a_conParam.at("ownPort");
-    m_remIp   = a_conParam.at("remIp");
-    m_remPort = a_conParam.at("remPort");
-    m_blocking = std::stoi( a_conParam.at("block") );
 
     // Инициализация сокета клиента
     setupRes = m_socket->setup( a_conParam );
@@ -238,12 +231,15 @@ bool C_Server::recv( std::vector<char> &a_buffer, std::string &a_fromAddr)
 {
     bool okRecv= true;
 
-    std::fill( a_buffer.begin(), a_buffer.end(), '\0' ); // Очищение буфера
+//    std::fill( a_buffer.begin(), a_buffer.end(), '\0' ); // Очищение буфера
 
     // Попытка получения запроса от клиента
     do {
+        if (a_buffer.size() != s_bufferLen ){
+            a_buffer.resize(s_bufferLen);
+        }
         okRecv = m_socket->recv( a_buffer, a_fromAddr );
-    } while( !(okRecv && errno != ERR_BUFEMPT) );
+    } while( !okRecv && m_socket->needToRepeat() );
 
     if (okRecv) {
         std::cout << m_socket->name() << ":\tServer Recived message ["
@@ -251,13 +247,10 @@ bool C_Server::recv( std::vector<char> &a_buffer, std::string &a_fromAddr)
                   << a_buffer.size() << "], from [" << a_fromAddr << "]" << std::endl;
     } else {
 
-        if ( errno == ERR_BADRECV ){
             std::cout << m_socket->name() << ":\tBAD Recieve on Server Side."
                       << std::endl;
-        } else {
-            std::cout << m_socket->name() << ":\tUnexpectred Error"
-                      << ":\tUnexpectred Error: " << strerror(errno)<< std::endl;
-        }
+//            std::cout << m_socket->name() << ":\tUnexpectred Error"
+//                      << ":\tUnexpectred Error: " << strerror(errno)<< std::endl;
     }
 
     return okRecv;

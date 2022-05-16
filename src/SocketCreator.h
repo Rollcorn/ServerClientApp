@@ -22,7 +22,7 @@
 
 #include <string>
 
-#include "I_Socket.h"
+#include "I_Connection.h"
 #include "C_UdpSocket.h"
 
 namespace myTask {
@@ -44,7 +44,7 @@ namespace myTask {
 *****************************************************************************/
 
 // Создатель сокета соответствующего переданному ключу
-I_Socket * CreateSocket( std::string a_protoName );
+I_Connection * CreateSocket( std::string a_protoName );
 
 /*****************************************************************************
   Variables Deсlarations

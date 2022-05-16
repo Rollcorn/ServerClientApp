@@ -46,7 +46,7 @@
 #include <typeinfo>
 #include <map>
 
-#include "I_Socket.h"
+#include "I_Connection.h"
 #include "SocketCreator.h"
 #include "C_UdpSocket.h"
 #include "ErrorCodes.h"
@@ -75,7 +75,7 @@ public:
     ~C_Server();
 
     // Запуск сервера
-    bool setup( std::map<std::string, std::string> a_conParam);
+    bool setup( const conf_t& a_conParam );
 
     // Запуск работы сервера
     bool workingSession();
@@ -101,10 +101,10 @@ private:
     const std::string s_endConnMessage= "Stop Connection";   // Запрос клиента
 
     // Объект обеспечивающий связь клиента с сервером
-    I_Socket*  m_socket = nullptr;
+    I_Connection*  m_socket = nullptr;
 
     // Размер буфера сервера
-    const int s_bufferLen = 1024;
+    const size_t s_bufferLen = 1024;
 
 };
 

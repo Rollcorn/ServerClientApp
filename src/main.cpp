@@ -53,16 +53,16 @@ int main()
 {
 
     // Инициализация параметров соединия для сервера
-    ConParams servParams { {"transProt", "UDP"},
-                           {"ownIp", "127.0.0.1"}, {"ownPort", "5000"},
-                           {"remIp", "127.0.0.1"}, {"remPort", "5005"},
-                           {"block", "1"} };
+    myTask::conf_t servParams { {"transProt", "UDP"},
+                        {"ownIp", "127.0.0.1"}, {"ownPort", "5000"},
+                        {"remIp", "127.0.0.1"}, {"remPort", "5005"},
+                        {"block", "1"} };
 
     // Инициализация параметров соединия для клиента
-    ConParams cliParams { {"transProt", "UDP"},
-                          {"ownIp", "127.0.0.1"}, {"ownPort", "5005"},
-                          {"remIp", "127.0.0.1"}, {"remPort", "5000"},
-                          {"block", "1"} };
+    myTask::conf_t cliParams { {"transProt", "UDP"},
+                       {"ownIp", "127.0.0.1"}, {"ownPort", "5005"},
+                       {"remIp", "127.0.0.1"}, {"remPort", "5000"},
+                       {"block", "1"} };
 
 
     int messPerS     = 1;   // частота отправки запросов на сервевер (сообщений в секунду)

@@ -25,6 +25,7 @@
 
         client.setup(...);
 
+
   3) Начать процесс сетевого взаимодействия.
 
         client.workingSession();
@@ -46,7 +47,7 @@
 #include <map>
 #include <cerrno>
 
-#include "I_Socket.h"
+#include "I_Connection.h"
 #include "SocketCreator.h"
 #include "C_UdpSocket.h"
 #include "Config.h"
@@ -74,7 +75,7 @@ public:
     ~C_Client();
 
     // Создание/запуск сокета клиента
-    bool setup( ConParams a_conParam);
+    bool setup( const conf_t& a_conParam );
 
     // Работа клиента
     bool workingSession( int a_messPerSec, int a_workDuration );
@@ -92,14 +93,14 @@ private:
 
     // Временной интервал между отправками клиентом сообщений
     const std::chrono::milliseconds s_sendTimout = std::chrono::milliseconds(1000);
-    const std::string s_getNumMessage= "Give me a number!";   // Запрос данных
-    const std::string s_endConnMessage= "Stop Connection";   // Сигнал к остановке соединения
+    const std::string s_getNumMessage = "Give me a number!";   // Запрос данных
+    const std::string s_endConnMessage = "Stop Connection";   // Сигнал к остановке соединения
 
     // Размер буфера сообщений клиента
     const int s_bufferLen = 512;
 
     // Сокет клиента
-    I_Socket* m_socket = nullptr;
+    I_Connection* m_connector = nullptr;
 
     // Запуск сетевого взаимодействия с сервером
     bool communication( int a_messPerSec, int a_workDuration );

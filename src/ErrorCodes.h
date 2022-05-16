@@ -1,16 +1,18 @@
 #pragma once
+#include <winsock2.h>
 
 namespace myTask {
 
     enum E_ConectCodes {
-        OK            = 0,
-        ERR_BUFEMPT   = 1,
-        ERR_BADRECV   = 2,
-        ERR_BADSEND   = 3,
-        ERR_BADBIND   = 4,
-        ERR_BADSETOPT = 5,
-        ERR_BADSETUP  = 6,
-        ERR_BADINIT   = 7,
-
+        // не критические коды bind()
+        ERR_BINDPROGRESS = WSAEINPROGRESS,
+        ERR_ALREADYBOUND = WSAEINVAL,
+        
+        // не критические коды send()
+        ERR_BUFEMPT              = WSAEWOULDBLOCK,
+        CONNECT_HAS_BEEN_BROCKEN = WSAENETRESET,
+        MESS_LARGER_THAN_MAX     = WSAEMSGSIZE,
+        NET_NOT_REACHED          = WSAENETUNREACH,
+        CONN_HAS_BEEN_DROPPED    = WSAETIMEDOUT,
     } ;
 }

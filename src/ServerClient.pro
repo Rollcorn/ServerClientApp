@@ -10,9 +10,6 @@ win32:LIBS += -lws2_32
 
 TEMPLATE = app
 
-SOURCES	+= *.cpp \
-    c_tcpsocket.cpp
+SOURCES	+= *.cpp
 HEADERS += *.h \
-    ErrorCodes.h \
-    Config.h \
-    c_tcpsocket.h
+    ErrorCodes.h

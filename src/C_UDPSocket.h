@@ -46,6 +46,12 @@
 
     В случае новго открытия сокета повторить шаги начиная с п. 2.
 
+  * Функции send() и recv() могут заканчиваться статус успешного/не усепшного выполения приема/отправки
+    данных, но причин для неудачного статуса больше одной. Для обработки причины неудачи используется метод
+    needToReapet() в котором реализуются обработчики некоторых ошибок, не являющиеся критическими, и в случае
+    если программа может попробовать вызвать метод, вернувший ошибку, еще раз возвращает true, если же ошибка
+    критическая, выводит в лог код ошибки и её код.
+
   * Параметры UDP соединие приведены в структуре T_SockTransProt.UDP
 
   * Обьекты Flags передаются в setup() как дополнительные опция сокета
@@ -103,7 +109,7 @@
 #include <ws2tcpip.h>
 #include <iphlpapi.h>
 
-#include "I_Socket.h"
+#include "I_Connection.h"
 #include "Config.h"
 #include "ErrorCodes.h"
 
@@ -121,40 +127,44 @@ namespace myTask {
   Types and Classes Definitions
 *****************************************************************************/
 
-class C_UdpSocket : public I_Socket
+class C_UdpSocket : public I_Connection
 {
 
 public:
 
     C_UdpSocket();
 
-    virtual ~C_UdpSocket();
+    ~C_UdpSocket();
 
     // Запуск сокета
-    virtual bool setup( ConParams a_conParam );
+    bool setup( const conf_t& a_conParam ) override;
 
     // Cвязывание сокет с локальным адресом протокола
-    virtual bool open();
+    bool open() override;
 
     // Получение данных
-    virtual bool recv( std::vector<char> &a_buffer, std::string &a_from );
+    bool recv( std::vector<char> &a_buffer, std::string &a_from ) override;
 
     // Отправка данных
-    virtual bool send( const std::vector<char> &a_data, const std::string &a_to );
+    bool send( const std::vector<char> &a_data, const std::string &a_to ) override;
 
     // Закрытие соединеия
-    virtual bool close();
+    bool close() override;
 
     // Закрытие сокета
-    virtual bool flush();
+    bool flush() override;
 
     // Имя сокета (ip - port)
-    virtual std::string name();
+    std::string name() override;
+
+    // Обработка ошибок сокета
+    bool needToRepeat() override;
 
     // Адрес удаленного сокета
-    std::string remoteAddr();
+    std::string remoteAddr() override;
 
 private:
+    int m_lastErrCod;
 
     // Инициализация библиотеки WinSock2
     bool initWinsock();
@@ -188,7 +198,7 @@ private:
 
 protected:
     // Параметры состояния сокета блокировки при передачи данных
-    enum Flags{
+    enum Flags {
         optNo       = 0x00,
         optNonblock = 0x01,
     };

@@ -4,6 +4,12 @@
 
   Реализация сетевого клиента.
 
+  Метод setup() выполняет настройку коннектора между клиентом и сервером
+  для этого в передаваемом в него файле конфигурации должен иметься параметр
+  с именем "transProt" который  принимает одно из следующих значений:
+  - "UDP".
+
+
 *****************************************************************************/
 
 #include "C_Client.h"
@@ -33,14 +39,15 @@ C_Client::C_Client()
  */
 C_Client::~C_Client()
 {
-    delete m_socket;
+    delete m_connector;
 }
 
 /*****************************************************************************
  * Создание/запуск сокета клиента
  *
- * Осуществляет попытку создания объекта обмена данными - сокет, на указанном
- * адресе - ip + порт, и сообщает об об успешности этой завершения операции.
+ * Осуществляет создания объекта соединения указанного в файле конфигурации
+ * a_conParam. И передает этот файл конфигурации в метод setup() построенного
+ * объекта m_connector.
  *
  * @param
  *   [in]   a_conParam - словарь содержащий парамметры конфигурации соединения.
@@ -48,22 +55,22 @@ C_Client::~C_Client()
  * @return
  *  успешность создания сокета.
  */
-bool C_Client::setup( ConParams a_conParam )
+bool C_Client::setup( const conf_t& a_conParam )
 {
     bool setupRes = false; // Результат запуска клиента
-    std::string protocol = a_conParam.at("transProt");
+    std::string protocol = findValByKey( a_conParam, "transProt" );
+
     // Инстанцируем необходимый  сокет
-    m_socket = CreateSocket(protocol);
-//    m_blocking = atoi( a_conParam.at("block").c_str() );
+    m_connector = CreateSocket(protocol);
 
     // Попытка инициализации сокета клиента
-    setupRes = m_socket->setup( a_conParam );
+    setupRes = m_connector->setup( a_conParam );
     if (setupRes) {
-        std::cout << m_socket->name() << ":\tClient Socket CREATING SUCCESS"
+        std::cout << m_connector->name() << ":\tClient Socket CREATING SUCCESS"
                   << std::endl;
     }
     else {
-        std::cout << m_socket->name() << ":\tClient Socket creating FAILED. Errno ["
+        std::cout << m_connector->name() << ":\tClient Socket creating FAILED. Errno ["
                   << strerror(errno) << "]" << std::endl;
     }
 
@@ -90,21 +97,21 @@ bool C_Client::workingSession( int a_messPerSec, int a_workDuration )
     bool okComm = false;
     bool okDisc = false;
 
-    std::cout << m_socket->name() << ":\tCLIENT COMUNICATION STARTED. " << std::endl;
+    std::cout << m_connector->name() << ":\tCLIENT COMUNICATION STARTED. " << std::endl;
 
     // Попытка запуска сетевого взяимодействия со стороны клиента
     okComm = communication( a_messPerSec, a_workDuration );
     if (okComm) {
-        std::cout << m_socket->name() << ":\tClient Communication SUCCESS. " << std::endl;
+        std::cout << m_connector->name() << ":\tClient Communication SUCCESS. " << std::endl;
     }
     else {
-        std::cout << m_socket->name() << ":\tClient Communication FAILED. " << std::endl;
+        std::cout << m_connector->name() << ":\tClient Communication FAILED. " << std::endl;
     }
 
     // Попытка закрытия сокета
-    okDisc = m_socket->flush();
+    okDisc = m_connector->flush();
     if (okDisc) {
-        std::cout << m_socket->name() << ":\tCLIENT SOCK CLOSED SUCCESS. " << std::endl;
+        std::cout << m_connector->name() << ":\tCLIENT SOCK CLOSED SUCCESS. " << std::endl;
     }
 
     return okComm && okDisc;
@@ -124,22 +131,22 @@ bool C_Client::send( std::string a_strMessage )
     bool okSend= true; // результат отправки данных
 
     std::vector<char> message = {a_strMessage.begin(), a_strMessage.end()};
-    message.push_back( '\0' );
+    message.push_back('\0');
     // Вызов resize() важен чтобы не получить мусора в данных
     message.resize(a_strMessage.length() );
 
-    okSend = m_socket->send( message, m_socket->remoteAddr());
+    okSend = m_connector->send( message, m_connector->remoteAddr());
     if(okSend){
-        std::cout << m_socket->name() << ":\tClient Sent message ["
+        std::cout << m_connector->name() << ":\tClient Sent message ["
                   << message.data() << "], size: [" << message.size() << "]" << std::endl;
     } else {
-        std::cout << m_socket->name() << ":\tBAD Send on Client. Errno ["
+        std::cout << m_connector->name() << ":\tBAD Send on Client. Errno ["
                   << strerror(errno) << "]" << std::endl;
-        // TODO обработка errno
     }
 
     return okSend;
 }
+
 
 /*******************************************************************************
  * Попытка получения сообщения
@@ -150,25 +157,28 @@ bool C_Client::recv( std::vector<char> &a_buffer, std::string &a_fromAddr)
     bool okRecv = false;
 
     // Вызов fill() важен чтобы не получить мусора в данных
-    std::fill( a_buffer.begin(), a_buffer.end(), '\0' );
+//    std::fill( a_buffer.begin(), a_buffer.end(), '\0' );
 
     // Попытка получения запроса от клиента
     do {
-        okRecv = m_socket->recv( a_buffer, a_fromAddr );
-    } while( !okRecv || errno == ERR_BUFEMPT );
+        if ( a_buffer.size() != s_bufferLen ){
+            a_buffer.resize(s_bufferLen);
+        }
+        okRecv = m_connector->recv( a_buffer, a_fromAddr );
+    } while( !okRecv && m_connector->needToRepeat() );
+
 
     if( okRecv ) {
-        std::cout << m_socket->name() << ":\tClient Recived message ["
+        std::cout << m_connector->name() << ":\tClient Recived message ["
                   << a_buffer.data() << "], size: ["
                   << a_buffer.size() << "], from [" << a_fromAddr << "]" << std::endl;
     } else {
-        if ( errno == ERR_BADRECV ){
-            std::cout << m_socket->name() << ":\tBAD Reciev on Client Side." << std::endl;
-        } else {
-            std::cout << m_socket->name() << ":\tUnexpectred Error: " << strerror(errno) << std::endl;
-        }
+//        if ( !okRecv ){
+//            std::cout << m_socket->name() << ":\tBAD Reciev on Client Side." <<strerror(errno << std::endl;
+//        } else {
+//            std::cout << m_socket->name() << ":\tUnexpectred Error: " << ) << std::endl;
+//        }
     }
-
     return okRecv;
 }
 
@@ -220,7 +230,7 @@ bool C_Client::communication( int a_messPerSec, int a_workDuration )
         // Попытка получения сообщения от сервера
         std::string fromAddr;
 
-        if (okSend){
+        if (okSend) {
             okRecv = recv( buffer, fromAddr );
 
             Sleep( a_messPerSec * 1000 ); // Выдержка в 1 секнду
