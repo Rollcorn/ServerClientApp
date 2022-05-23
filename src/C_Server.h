@@ -83,6 +83,11 @@ public:
     // Закрытие сокета клиента
     bool flush();
 
+    // Отправка сообщения
+    bool send(const std::string&  messageStr, const std::string& fromAddr);
+
+    // Возвращает случайного число в заданном диапазоне
+    std::string genRandNumMess(const int minRandNum, const int maxRandNum);
 
 private:
     // Отправка ответа клиенту
@@ -97,11 +102,11 @@ private:
 
     // Обмен данными с клиентом
     bool communication( );
-    bool m_isEndConnSignal = false;
-    const std::string s_endConnMessage= "Stop Connection";   // Запрос клиента
+    bool m_isEndConnSignal = false; //
+    const std::string s_endConnMessage= "Stop Connection";   // Запрос клиента на завершение соединения
 
     // Объект обеспечивающий связь клиента с сервером
-    I_Connection*  m_socket = nullptr;
+    I_Connection*  m_connector = nullptr;
 
     // Размер буфера сервера
     const size_t s_bufferLen = 1024;

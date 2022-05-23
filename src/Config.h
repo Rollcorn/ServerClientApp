@@ -2,7 +2,7 @@
 
   Config
 
-  Описание типов конфигурации для клиента/сервера
+  Описание типов конфигурации
 
   ОПИСАНИЕ TODO назначение, функции и возможности модуля
 
@@ -24,7 +24,7 @@
 #include <string>
 
 
-namespace myTask {
+namespace conf {
 
 /*****************************************************************************
   Macro Definitions
@@ -38,10 +38,6 @@ namespace myTask {
   Types and Classes Definitions
 *****************************************************************************/
 
-//using conf_t = std::map< std::string, std::vector<std::string> >;
-
-//using param_t = std::pair< string, string >;
-
 struct param_t {
     std::string name;
     std::string value;
@@ -49,14 +45,12 @@ struct param_t {
 
 using conf_t = std::vector<param_t>;
 
-//conf.emplace_back( "a", "b" );
-//conf.push_back( { "a", "b" } );
 
 /*****************************************************************************
   Functions Prototypes
 *****************************************************************************/
 
-extern std::string findValByKey(const conf_t& a_conf, const std::string& a_key);
+std::string getParam( const conf_t &a_conf, const std::string &a_name );
 
 /*****************************************************************************
   Variables Deсlarations

@@ -45,26 +45,36 @@ C_Client::~C_Client()
 /*****************************************************************************
  * Создание/запуск сокета клиента
  *
- * Осуществляет создания объекта соединения указанного в файле конфигурации
- * a_conParam. И передает этот файл конфигурации в метод setup() построенного
- * объекта m_connector.
+ * C_Client извлекает параметр transProt, указанного в конфигурации, и
+ * осуществляет создания объекта типа I_Connection с помощью фабрики CreateSocket.
+ * И передает этот файл конфигурации в метод setup() построенного
+ * объекта I_Connection m_connector который инициализурется согласно параметрам
+ * a_conParam.
  *
  * @param
- *   [in]   a_conParam - словарь содержащий парамметры конфигурации соединения.
+ *  [in] a_conParam - данные для отправки.
+ *
+ *  Формат файла конфигурации:
+ *
+ *  transProt   = string,
+ *                Протокол обмена.
  *
  * @return
  *  успешность создания сокета.
  */
-bool C_Client::setup( const conf_t& a_conParam )
+bool C_Client::setup( const conf::conf_t& a_conParam )
 {
     bool setupRes = false; // Результат запуска клиента
-    std::string protocol = findValByKey( a_conParam, "transProt" );
+    std::string protocol = conf::getParam( a_conParam, "transProt" );
 
     // Инстанцируем необходимый  сокет
-    m_connector = CreateSocket(protocol);
+    m_connector = createSocket(protocol);
 
     // Попытка инициализации сокета клиента
-    setupRes = m_connector->setup( a_conParam );
+    do{
+        setupRes = m_connector->setup( a_conParam );
+    } while ( !setupRes && errno == 0 );
+
     if (setupRes) {
         std::cout << m_connector->name() << ":\tClient Socket CREATING SUCCESS"
                   << std::endl;
@@ -120,9 +130,6 @@ bool C_Client::workingSession( int a_messPerSec, int a_workDuration )
 /*******************************************************************************
  * Попытка отправки сообщения
  *
- * @param
- *  [in] a_strMessage - данные для отправки.
- *
  * @return
  *  успешность отправки
  */
@@ -131,22 +138,11 @@ bool C_Client::send( std::string a_strMessage )
     bool okSend= true; // результат отправки данных
 
     std::vector<char> message = {a_strMessage.begin(), a_strMessage.end()};
-    message.push_back('\0');
-    // Вызов resize() важен чтобы не получить мусора в данных
-    message.resize(a_strMessage.length() );
 
     okSend = m_connector->send( message, m_connector->remoteAddr());
-    if(okSend){
-        std::cout << m_connector->name() << ":\tClient Sent message ["
-                  << message.data() << "], size: [" << message.size() << "]" << std::endl;
-    } else {
-        std::cout << m_connector->name() << ":\tBAD Send on Client. Errno ["
-                  << strerror(errno) << "]" << std::endl;
-    }
 
     return okSend;
 }
-
 
 /*******************************************************************************
  * Попытка получения сообщения
@@ -161,27 +157,14 @@ bool C_Client::recv( std::vector<char> &a_buffer, std::string &a_fromAddr)
 
     // Попытка получения запроса от клиента
     do {
-        if ( a_buffer.size() != s_bufferLen ){
-            a_buffer.resize(s_bufferLen);
-        }
+
         okRecv = m_connector->recv( a_buffer, a_fromAddr );
-    } while( !okRecv && m_connector->needToRepeat() );
+    } while( !okRecv && errno == 0 );
 
 
-    if( okRecv ) {
-        std::cout << m_connector->name() << ":\tClient Recived message ["
-                  << a_buffer.data() << "], size: ["
-                  << a_buffer.size() << "], from [" << a_fromAddr << "]" << std::endl;
-    } else {
-//        if ( !okRecv ){
-//            std::cout << m_socket->name() << ":\tBAD Reciev on Client Side." <<strerror(errno << std::endl;
-//        } else {
-//            std::cout << m_socket->name() << ":\tUnexpectred Error: " << ) << std::endl;
-//        }
-    }
+
     return okRecv;
 }
-
 
 /*****************************************************************************
  * Обмен данными с клиентом
@@ -200,10 +183,10 @@ bool C_Client::recv( std::vector<char> &a_buffer, std::string &a_fromAddr)
  */
 bool C_Client::communication( int a_messPerSec, int a_workDuration )
 {
-    bool    okSend = false; // результат отправки данных
-    bool    okRecv = false; // Результат получения данных
+    bool    okSend = false;     // результат отправки данных
+    bool    okRecv = false;     // Результат получения данных
 
-    std::vector<char> buffer( s_bufferLen );  // Буфер для полученных данных
+    std::vector<char> buffer;   // Буфер для полученных данных
 
     // Определение таймера работы клиента
     auto start  = std::chrono::steady_clock::now();
@@ -220,6 +203,14 @@ bool C_Client::communication( int a_messPerSec, int a_workDuration )
         if (currTime - lastSendTime  >= std::chrono::milliseconds(s_sendTimout) ){
             okSend = send(s_getNumMessage);
             lastSendTime  = std::chrono::steady_clock::now();
+            if(okSend){
+                std::cout << m_connector->name() << ":\tClient Sent message ["
+                          << s_getNumMessage << "], size: [" << s_getNumMessage.size() << "]"
+                          << std::endl;
+            } else {
+                std::cout << m_connector->name() << ":\tBAD Send on Client. Errno ["
+                          << strerror(errno) << "]" << std::endl;
+            }
         } else {
             end = std::chrono::steady_clock::now();
             curentWorkTime = end - start;
@@ -232,6 +223,14 @@ bool C_Client::communication( int a_messPerSec, int a_workDuration )
 
         if (okSend) {
             okRecv = recv( buffer, fromAddr );
+            if( okRecv ) {
+                std::cout << m_connector->name() << ":\tClient Recived message ["
+                          << buffer.data() << "], size: ["
+                          << buffer.size() << "], from [" << fromAddr << "]" << std::endl;
+            } else {
+                std::cout << m_connector->name() << ":\tBAD Reciev on Client Side."
+                          << strerror(errno) << std::endl;
+            }
 
             Sleep( a_messPerSec * 1000 ); // Выдержка в 1 секнду
 

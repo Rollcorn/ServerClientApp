@@ -40,18 +40,30 @@ C_Server::C_Server()
  */
 C_Server::~C_Server()
 {
-    delete m_socket;
+    delete m_connector;
 }
 
 /*****************************************************************************
  * Запуск сокета сервера
  *
- * Запускает сокет - m_socket.setup, открывает на установленном адресе
- * соединие - m_socket.open. При возникновении проблемы в одном из этапов
- * метод возвращает false.
+ * Формат файла конфигурации (# - необязательный параметр, * - множественный
+ * параметр, [] - необязательная часть)::
+ *
+ * + конфигурация I_Connection, см. I_Connection::setup() конкретных производных
+ *   классов.
+ *
+ * transProt   = {строка}
+ *               Тип используемого соединения.
+ *               Перечень типов см. SocketCreator::CreateSocket()
+ *
+ * C_Server извлекает параметр transProt, указанного в конфигурации, и
+ * осуществляет создания объекта типа I_Connection с помощью фабрики CreateSocket.
+ * И передает этот файл конфигурации в метод setup() построенного
+ * объекта I_Connection m_connector который инициализурется согласно параметрам
+ * a_conParam.
  *
  * @param
- *   [in] a_conParam - контейнер и данными конфигурации соединения.
+ *  [in] a_conParam - конфигурация.
  *
  * @return
  *  успешность запуска
@@ -61,24 +73,24 @@ bool C_Server::setup( const conf_t& a_conParam )
     bool setupRes = false; // Результат запуска сокета
     bool openRes  = false; // Результат открытия соединения сокета
 
-    std::string protocol = findValByKey( a_conParam, "transProt");
+    std::string protocol = findValByName( a_conParam, "transProt");
     // Инстанцируем необходимый  сокет
-    m_socket = CreateSocket(protocol);
+    m_connector = createSocket(protocol);
 
     // Инициализация сокета клиента
-    setupRes = m_socket->setup( a_conParam );
+    setupRes = m_connector->setup( a_conParam );
     if (setupRes) {
-        std::cout << m_socket->name() << ":\tServer Socket CREATING SUCCESS." << std::endl;
+        std::cout << m_connector->name() << ":\tServer Socket CREATING SUCCESS." << std::endl;
     } else {
-        std::cout << m_socket->name() << ":\tServer Socket CREATING FAILED." << std::endl;
+        std::cout << m_connector->name() << ":\tServer Socket CREATING FAILED." << std::endl;
     }
 
     // Попытка открытия сокета клиента
-    openRes = m_socket->open();
+    openRes = m_connector->open();
     if (openRes) {
-        std::cout << m_socket->name() << ":\tServer Socket OPENING SUCCESS." << std::endl;
+        std::cout << m_connector->name() << ":\tServer Socket OPENING SUCCESS." << std::endl;
     } else {
-        std::cout << m_socket->name() << ":\tServer Socket OPENING FAILED." << std::endl;
+        std::cout << m_connector->name() << ":\tServer Socket OPENING FAILED." << std::endl;
     }
     return setupRes && openRes;
 }
@@ -98,14 +110,14 @@ bool C_Server::workingSession()
     bool okWork = false;
     bool flushRes = false;
 
-    std::cout << m_socket->name() << ":\tSERVER COMUNICATION STARTED.\n";
+    std::cout << m_connector->name() << ":\tSERVER COMUNICATION STARTED." << std::endl ;
 
     // Попытка запуска комуникации с сервером
     okWork = communication();
     if( okWork ) {
-        std::cout << m_socket->name() << ":\tServer Start communacation SUCCESS. " << std::endl;
+        std::cout << m_connector->name() << ":\tServer Start communacation SUCCESS. " << std::endl;
     } else {
-        std::cout << m_socket->name() << ":\tServer communacation FAILED. "
+        std::cout << m_connector->name() << ":\tServer communacation FAILED. "
                   << strerror(errno) << std::endl;
     }
 
@@ -113,6 +125,51 @@ bool C_Server::workingSession()
     flushRes = flush();
 
     return okWork && flushRes;
+}
+
+/****************************************************************************
+ * Генерация случайного числа
+ *
+ * [in] a_min - нижняя граница генерирования
+ * [in] a_max - верхняя граница генерирования
+ *
+ * @return
+ */
+std::string C_Server::genRandNumMess(const int a_min, const int a_max)
+{
+    static std::random_device  s_rd;
+    static std::mt19937        s_gen( s_rd() );
+
+    std::uniform_int_distribution<int> dist( a_min, a_max );
+
+    // Генерируется случайное число
+    int num = dist(s_gen);
+
+    // Подготовка сообщения
+    std::string messageStr = std::to_string(num);
+
+    return messageStr;
+}
+
+
+/****************************************************************************
+ * Отправка сообщения
+ *
+ * [in] a_message - отправляемое сообщение
+ * [in] a_fromAddr
+ *
+ * @return
+ *  Успешность отправки сообщения
+ */
+bool C_Server::send(const std::string& a_message, const std::string& a_toAddr)
+{
+    bool okSend= true; // результат отправки данных
+
+    std::vector<char> messageVec = {a_message.begin(), a_message.end() };
+
+    okSend = m_connector->send( messageVec, a_toAddr );
+
+    return okSend;
 }
 
 /*****************************************************************************
@@ -131,12 +188,6 @@ bool C_Server::communication()
 
     std::vector<char> buffer(s_bufferLen); // Буфер для полученных данных
 
-    // Генерация случайного числа
-    std::random_device  rd;
-    std::mt19937        gen( rd() );
-    int minRandNum = -100;
-    int maxRandNum = 100;
-    std::uniform_int_distribution<int> dist( minRandNum, maxRandNum );
     std::cout << "===========================================================" << std::endl;
 
     while ( !m_isEndConnSignal ) {
@@ -150,33 +201,26 @@ bool C_Server::communication()
 
         // Попытка получения запроса от клиента
         std::string fromAddr;
+
         recvRes = recv( buffer, fromAddr);
 
-        m_isEndConnSignal = (buffer.data() == s_endConnMessage);
+        m_isEndConnSignal = ( s_endConnMessage == std::string(buffer.data() ) );
 
         // Попытка отправки ответа клиенту на его запрос
-        std::vector<char> messageVec;
+        const int s_min = -100;
+        const int s_max = 100;
+        std::string messageStr = genRandNumMess( s_min, s_max );
 
         if (!m_isEndConnSignal) {
-            // Генерируется случайное число
-            int num = dist(gen);
-
-            // Подготовка сообщения
-            std::string messageStr = std::to_string(num);
-            messageVec = {messageStr.begin(), messageStr.end() };
-            messageVec.push_back('\0');
-            messageVec.resize(messageStr.length());
-
-            sendRes = m_socket->send( messageVec, fromAddr );
-        } else {
-            sendRes = true;
+            sendRes = send(messageStr,fromAddr);
+            if (sendRes) {
+                // ??????????????
+                std::cout << m_connector->name() << ":\tServer Sent message ["
+                          << messageStr <<  "] Send size: " << messageStr.length() << " "
+                          << std::endl;
+            }
         }
 
-        if (sendRes && !m_isEndConnSignal) {
-            std::cout << m_socket->name() << ":\tServer Sent message ["
-                      << messageVec.data() <<  "] Send size: " << messageVec.size() << " "
-                      << std::endl;
-        }
         std::cout << "==========================================================="
                   << std::endl;
     }
@@ -198,59 +242,55 @@ bool C_Server::flush()
     bool flushRes = false;
 
     // Попытка закрытия соединения
-    discRes = m_socket->close();
+    discRes = m_connector->close();
     if (discRes) {
-        std::cout << m_socket->name()
+        std::cout << m_connector->name()
                   << ":\tServer Socket diconnected successfully. " << std::endl;
     }
     else {
-        std::cout << m_socket->name() << ":\tBAD Socket diconnect. " << std::endl;
+        std::cout << m_connector->name() << ":\tBAD Socket diconnect. " << std::endl;
     }
 
     // Попытка освобождения ресурсов соединения
-    flushRes = m_socket->flush();
+    flushRes = m_connector->flush();
     if ( discRes && flushRes ) {
-        std::cout << m_socket->name() << ":\tSERVER SOCK CLOSED SUCCESS. " << std::endl;
+        std::cout << m_connector->name() << ":\tSERVER SOCK CLOSED SUCCESS. " << std::endl;
     }
     else {
-        std::cout << m_socket->name() << ":\tBAD Socket closed on Server. " << std::endl;
+        std::cout << m_connector->name() << ":\tBAD Socket closed on Server. " << std::endl;
     }
 
     return discRes && flushRes;
 }
 
 /*****************************************************************************
- * Отправка сообщения
+ * Прием сообщения
  *
- * [in]
+ * [out] a_buffer - буфер для записи полученных данных.
+ * [out] a_fromAddr - адрес отправителя данных.
  *
  * @return
- *  успешность закрытия соединения
+ *  успешность получения данных
  */
 bool C_Server::recv( std::vector<char> &a_buffer, std::string &a_fromAddr)
 {
     bool okRecv= true;
-
-//    std::fill( a_buffer.begin(), a_buffer.end(), '\0' ); // Очищение буфера
 
     // Попытка получения запроса от клиента
     do {
         if (a_buffer.size() != s_bufferLen ){
             a_buffer.resize(s_bufferLen);
         }
-        okRecv = m_socket->recv( a_buffer, a_fromAddr );
-    } while( !okRecv && m_socket->needToRepeat() );
+        okRecv = m_connector->recv( a_buffer, a_fromAddr );
+    } while( !okRecv && errno == 0 );
 
     if (okRecv) {
-        std::cout << m_socket->name() << ":\tServer Recived message ["
+        std::cout << m_connector->name() << ":\tServer Recived message ["
                   << a_buffer.data() << "], size: ["
                   << a_buffer.size() << "], from [" << a_fromAddr << "]" << std::endl;
     } else {
-
-            std::cout << m_socket->name() << ":\tBAD Recieve on Server Side."
+            std::cout << m_connector->name() << ":\tBAD Recieve on Server Side."
                       << std::endl;
-//            std::cout << m_socket->name() << ":\tUnexpectred Error"
-//                      << ":\tUnexpectred Error: " << strerror(errno)<< std::endl;
     }
 
     return okRecv;

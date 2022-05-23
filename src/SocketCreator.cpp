@@ -17,6 +17,8 @@
 
 #include "SocketCreator.h"
 
+#include "C_UdpSocket.h"
+
 
 /*****************************************************************************
   Macro Definitions
@@ -40,21 +42,18 @@ namespace myTask {
 /****************************************************************************
  * Создание сокета соответствующего переданному ключу
  *
- * Метод получает имя протокола сокета и если имеется реализация конкретной
- * фабрики данного протокола, то возвращает
- *
  * @param
- *  [in] a_protoName - идентификатор сокета.
+ *  [in] a_type - идентификатор типа интерфейса
  *
  * @return
- *  Объект с интерфейсом I_Socket, реализованным в соответствии с заданным
- *  протоколом.
+ *  nullptr - ошибка создания (неизвестный ид. типа)
+ *  иначе   - объект реализации I_Connection заданного типа
  */
-I_Connection * CreateSocket( std::string a_protoName )
+I_Connection * createSocket( const std::string &a_type )
 {
     I_Connection *mySock = nullptr;
 
-    if ( a_protoName.compare("UDP") == 0 ) {
+    if ( a_type.compare("UDP") == 0 ) {
         mySock = new C_UdpSocket;
     }
 

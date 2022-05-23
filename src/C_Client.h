@@ -96,8 +96,7 @@ private:
     const std::string s_getNumMessage = "Give me a number!";   // Запрос данных
     const std::string s_endConnMessage = "Stop Connection";   // Сигнал к остановке соединения
 
-    // Размер буфера сообщений клиента
-    const int s_bufferLen = 512;
+
 
     // Сокет клиента
     I_Connection* m_connector = nullptr;

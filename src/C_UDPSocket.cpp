@@ -8,6 +8,8 @@
 
 #include "C_UDPSocket.h"
 
+#include <algorithm>
+
 namespace myTask{
 
 /*****************************************************************************
@@ -27,6 +29,7 @@ namespace myTask{
  */
 C_UdpSocket::C_UdpSocket()
 {
+    m_buffer.resize(m_bufferSize);
 }
 
 /*****************************************************************************
@@ -63,16 +66,39 @@ bool C_UdpSocket::initWinsock()
 }
 
 /*****************************************************************************
- * Создание сокета
+ * Создание и настройка сокета
+ *
+ * Формат файла конфигурации a_conParam (# - необязательный параметр, * - множественный
+ * параметр, [] - необязательная часть):
+ *
+ * ownIp   = {строка}
+ *           ip-адрес на котором будет открыт сокет
+ *           формат строки ххх.ххх.ххх.ххх
+ *
+ * ownPort = {строка}
+ *           порт на котором будет открыт сокет
+ *           формат строки ХХХХ
+ *
+ * remIp   = {строка}
+ *           ip-адрес удаленного сокета
+ *           формат строки ххх.ххх.ххх.ххх
+ *
+ * remPort = {строка}
+ *           порт удаленного сокет
+ *           формат строки ХХХХ
+ *
+ * #block  = {строка}
+ *           флаг опций сокета
+ *           По умолчанию: 1
  */
 bool C_UdpSocket::setup( const conf_t& a_conParam )
 {
     // Инициализация параметров соединения
-    m_ownIp      = findValByKey( a_conParam, "ownIp");
-    m_ownPort    = (short) std::stoi( findValByKey( a_conParam, "ownPort" ) );
-    m_remIp      = findValByKey( a_conParam, "remIp" );
-    m_remPort    = (short) std::stoi( findValByKey( a_conParam, "remPort" ) );
-    m_isBlocking = (bool) std::stoi( findValByKey ( a_conParam, "block" ) );
+    m_ownIp      = findValByName( a_conParam, "ownIp");
+    m_ownPort    = (short) std::stoi( findValByName( a_conParam, "ownPort" ) );
+    m_remIp      = findValByName( a_conParam, "remIp" );
+    m_remPort    = (short) std::stoi( findValByName( a_conParam, "remPort" ) );
+    m_isBlocking = (bool) std::stoi( findValByName ( a_conParam, "block" ) );
 
     bool okSetup = false;
     bool okSetOpt = false;
@@ -87,7 +113,11 @@ bool C_UdpSocket::setup( const conf_t& a_conParam )
         if ( m_sockFd != INVALID_SOCKET ) {
             okSetup = true;
         }
+        if (WSAGetLastError() == WSAENETDOWN){
+            errno = 0;
+        }
     }
+
 
     // Заполнение параметров буфера
     ZeroMemory( &m_ownAddr, sizeof( m_ownAddr ) );
@@ -105,11 +135,6 @@ bool C_UdpSocket::setup( const conf_t& a_conParam )
 
 /*****************************************************************************
  * Установка сокета в неблокирующий режим
- *
- * Устанавливает режим работы сокета на неблокирующий.
- *
- * @return
- *  Успешность установки опций сокета
  */
 bool C_UdpSocket::setNonblock()
 {
@@ -132,11 +157,17 @@ bool C_UdpSocket::open()
 {
     bool ret = true;
     int  res = 0;
-
+    int err = 0;
     // Попытка открытия сокета
     res = bind( m_sockFd, (sockaddr *)&m_ownAddr, sizeof(m_ownAddr) );
+    int lastError = WSAGetLastError();
+
     if ( res == SOCKET_ERROR) {
         ret = false;
+    } else {
+        if ( lastError != WSAENETDOWN ){
+            err = EFAULT;
+        }
     }
 
     return ret;
@@ -150,6 +181,7 @@ bool C_UdpSocket::send( const std::vector<char> &a_data, const std::string &a_to
 {
     bool    okSend = false;                 // Результат отправки
     socklen_t tolen = sizeof(m_remoteAddr); //  Размера адреса назначения
+    int       err = 0;
 
     // Поиск разделителя ip и порта в строке a_to
     u_int sepIndex = 0;
@@ -168,20 +200,33 @@ bool C_UdpSocket::send( const std::vector<char> &a_data, const std::string &a_to
     // Попытка отправки данных
     int sendSize = sendto( m_sockFd, a_data.data(), a_data.size(), 0,
                           (struct sockaddr *)&m_remoteAddr, tolen );
+    int lastErrCod = WSAGetLastError();
 
     if ( sendSize != SOCKET_ERROR ) {
         okSend = true;
     }
+    else {
+        if ( lastErrCod == WSAEWOULDBLOCK || lastErrCod == WSAENETDOWN ) {
+            err = 0;
+        }
+        else {
+            err = EFAULT;
+        }
+    }
 
-    // errno = 0 / EFAULT;
-
-    m_lastErrCod = WSAGetLastError();
-    errno = m_lastErrCod;
+    errno = err;
     return okSend;
 }
 
 /*****************************************************************************
  * Получение данных из сокета
+ *
+ * [in] a_buffer -
+ * [in] a_from -
+ *
+ * @return
+ *  успешность закрытия соединения
+ *
  */
 bool C_UdpSocket::recv( std::vector<char> &a_buffer, std::string &a_from )
 {
@@ -189,27 +234,29 @@ bool C_UdpSocket::recv( std::vector<char> &a_buffer, std::string &a_from )
     socklen_t   fromlen = sizeof(m_remoteAddr);
     int         err = 0, recvSize = 0;
 
+    a_buffer.resize(0);
+
     // Очистка струтуры адреса
     ZeroMemory( &m_remoteAddr, sizeof( m_remoteAddr ) );
 
     // Попытка получения запроса
-    recvSize = recvfrom( m_sockFd, a_buffer.data(), a_buffer.size(), 0,
+    recvSize = recvfrom( m_sockFd, m_buffer.data(), m_buffer.size(), 0,
                             (sockaddr *)&m_remoteAddr, &fromlen);
 
+    int lastErrCod = WSAGetLastError();
+
     if ( recvSize != SOCKET_ERROR ) {
-        a_buffer.resize(recvSize);
+        a_buffer.assign( m_buffer.begin(), m_buffer.begin() + recvSize );
         okRecv = true;
     }
     else {
-
-        err = 0;
-
-
-        err = EFAULT;
-
+        if ( lastErrCod == WSAEWOULDBLOCK || lastErrCod == WSAENETDOWN ) {
+            err = 0;
+        }
+        else {
+            err = EFAULT;
+        }
     }
-
-    m_lastErrCod = WSAGetLastError();
 
     // Формирование строки адреса отправителя
     if (okRecv) {
@@ -249,49 +296,6 @@ bool C_UdpSocket::flush()
 std::string C_UdpSocket::name()
 {
     return  m_ownIp + ":" + std::to_string(m_ownPort);
-}
-
-/***************************************************************************
- * Проверка возможности продолжения работы
- *
- * Проверка последней ошибки m_lastErrCod на равенство одной из перечисленных
- * не критических ошибок. В случае если ошибка не
- *
- * @return
- */
-bool C_UdpSocket::needToRepeat()
-{
-
-    switch(m_lastErrCod)
-    {
-    case 0:
-        break;
-    case WSAEINPROGRESS:
-        std::cout << name() << " ERROR #" << m_lastErrCod << " - WSAEINPROGRESS" << std::endl;
-        break;
-    case WSAEINVAL:
-        std::cout << name() << " ERROR #" << m_lastErrCod << " - WSAEINVAL" << std::endl;
-        break;
-    case WSAEWOULDBLOCK:
-//        std::cout << " ERROR #" << error << " - WSAEWOULDBLOCK" << std::endl;
-        break;
-    case WSAENETRESET:
-        std::cout << name() << " ERROR #" << m_lastErrCod << " - WSAENETRESET" << std::endl;
-        break;
-    case WSAEMSGSIZE:
-        std::cout << name() << " ERROR #" << m_lastErrCod << " - WSAEMSGSIZE" << std::endl;
-        break;
-    case WSAENETUNREACH:
-        std::cout << name() << " ERROR #" << m_lastErrCod << " - WSAENETUNREACH" << std::endl;
-        break;
-    case WSAETIMEDOUT:
-        std::cout << name() << " ERROR #" << m_lastErrCod << " - WSAETIMEDOUT" << std::endl;
-        break;
-    default:
-        std::cout << name() << " CRIT ERROR #" << m_lastErrCod << std::endl;
-        return false;
-    }
-    return true;
 }
 
 /***************************************************************************

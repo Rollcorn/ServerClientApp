@@ -76,6 +76,8 @@
       переключает сокет в неблокирующий режим.
 
 
+
+
   ПРИМИЧАНИЕ
 
   * Перед использованием методов для работы с сокетом необходимо выполнить initWinsock
@@ -157,20 +159,20 @@ public:
     // Имя сокета (ip - port)
     std::string name() override;
 
-    // Обработка ошибок сокета
-    bool needToRepeat() override;
-
     // Адрес удаленного сокета
     std::string remoteAddr() override;
 
+
+protected: // types
+
+    // Параметры состояния сокета блокировки при передачи данных
+    enum Flags {
+        optNo       = 0x00, // нет опций
+        optNonblock = 0x01, // неблокирующий режим
+    };
+
+
 private:
-    int m_lastErrCod;
-
-    // Инициализация библиотеки WinSock2
-    bool initWinsock();
-
-    // Установка сокета в неблокирующий режим
-    bool setNonblock();
 
     /**
      * Параметры протокола
@@ -178,7 +180,6 @@ private:
     int m_ipFamily = AF_INET;       // IP протокол соединения
     int m_type     = SOCK_DGRAM;    // тип соединения сокета
     int m_protocol = IPPROTO_UDP;   // протокол соединения сокета
-    const int MAXLINE = 512;
 
     /**
      * Параметры соединения
@@ -191,17 +192,23 @@ private:
     /**
      * Данные сокета
      */
+
+    static constexpr size_t m_bufferSize = 65507;    // Размер буфера сообщений клиента
+    std::vector<char> m_buffer;// = decltype(m_buffer)(m_bufferLen);
     WSADATA m_wsadata;                  // Объект библиотеки winsock2
     SOCKET  m_sockFd = INVALID_SOCKET;  // дескриптор сокета
     struct sockaddr_in m_ownAddr;       // структура адреса собственного сокета IPv4
     struct sockaddr_in m_remoteAddr;    // структура адреса удаленного сокета IPv4
 
-protected:
-    // Параметры состояния сокета блокировки при передачи данных
-    enum Flags {
-        optNo       = 0x00,
-        optNonblock = 0x01,
-    };
+    // Инициализация библиотеки WinSock2
+    bool initWinsock();
+
+    // Установка сокета в неблокирующий режим
+    bool setNonblock();
+
+private: // static
+
+
 
 };
 

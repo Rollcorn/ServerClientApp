@@ -3,7 +3,7 @@
 **/.idea
 **/build*
 **/Debug*
-**/Realease*
+**./Realease*
 
 # Compiled class file
 *.class

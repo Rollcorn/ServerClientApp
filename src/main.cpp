@@ -53,13 +53,13 @@ int main()
 {
 
     // Инициализация параметров соединия для сервера
-    myTask::conf_t servParams { {"transProt", "UDP"},
+    conf::conf_t servParams { {"transProt", "UDP"},
                         {"ownIp", "127.0.0.1"}, {"ownPort", "5000"},
                         {"remIp", "127.0.0.1"}, {"remPort", "5005"},
                         {"block", "1"} };
 
     // Инициализация параметров соединия для клиента
-    myTask::conf_t cliParams { {"transProt", "UDP"},
+    conf::conf_t cliParams { {"transProt", "UDP"},
                        {"ownIp", "127.0.0.1"}, {"ownPort", "5005"},
                        {"remIp", "127.0.0.1"}, {"remPort", "5000"},
                        {"block", "1"} };
